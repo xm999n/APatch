@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
-import android.os.Debug
-import android.os.Process
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.edit
@@ -23,14 +21,10 @@ import me.bmax.apatch.util.rootShellForResult
 import me.bmax.apatch.util.verifyAppSignature
 import okhttp3.Cache
 import okhttp3.OkHttpClient
-import java.io.BufferedReader
 import java.io.File
-import java.io.FileReader
-import java.security.MessageDigest
 import java.util.Locale
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
-import kotlin.random.Random
 
 lateinit var apApp: APApplication
 
@@ -38,108 +32,42 @@ const val TAG = "APatch"
 
 class APApplication : Application(), Thread.UncaughtExceptionHandler {
     lateinit var okhttpClient: OkHttpClient
-    
-    private var securityToken: Long = 0L
-    private var verificationPassed = false
-    private val checkInterval = 30000L // 30秒
-    
+
     init {
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
-    // 反调试检测
-    private fun antiDebug(): Boolean {
-        // 检测 1: Debug 标志
-        if (Debug.isDebuggerConnected()) return false
-        
-        // 检测 2: TracerPid (检测 ptrace)
-        try {
-            val status = File("/proc/self/status")
-            if (status.exists()) {
-                BufferedReader(FileReader(status)).use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        if (line!!.startsWith("TracerPid:")) {
-                            val pid = line!!.substring(10).trim().toIntOrNull() ?: 0
-                            if (pid != 0) return false
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            return false
-        }
-        
-        // 检测 3: Frida 端口
-        try {
-            val tcp = File("/proc/net/tcp")
-            if (tcp.exists()) {
-                val content = tcp.readText()
-                // Frida 默认端口 27042 (0x6992)
-                if (content.contains(":6992") || content.contains(":D6F2")) {
-                    return false
-                }
-            }
-        } catch (e: Exception) {
-            return false
-        }
-        
-        // 检测 4: Frida 相关文件
-        val suspiciousFiles = arrayOf(
-            "/data/local/tmp/frida-server",
-            "/data/local/tmp/re.frida.server",
-            "/sdcard/frida-server",
-            "/system/bin/frida-server",
-            "/system/xbin/frida-server"
-        )
-        
-        for (file in suspiciousFiles) {
-            if (File(file).exists()) return false
-        }
-        
-        // 检测 5: Frida 相关库
-        try {
-            val maps = File("/proc/self/maps")
-            if (maps.exists()) {
-                val content = maps.readText()
-                if (content.contains("frida") || 
-                    content.contains("gum-js") || 
-                    content.contains("gum_js")) {
-                    return false
-                }
-            }
-        } catch (e: Exception) {
-            return false
-        }
-        
-        return true
-    }
-
-    // 分段加密的签名 (三重加密)
-    private fun d1(): String {
+    // 三重加密解密方法
+    private fun d(): String {
+        // 第一层: 分段存储 (打乱顺序)
         val s = arrayOf(
-            byteArrayOf(0x68, 0x49, 0x4a, 0x62),
-            byteArrayOf(0x72, 0x56, 0x47, 0x59),
-            byteArrayOf(0x44, 0x54, 0x46, 0x6e),
-            byteArrayOf(0x68, 0x46, 0x4d, 0x6a),
-            byteArrayOf(0x4f, 0x47, 0x35, 0x69),
-            byteArrayOf(0x56, 0x6a, 0x42, 0x49),
-            byteArrayOf(0x64, 0x48, 0x56, 0x77),
-            byteArrayOf(0x64, 0x58, 0x70, 0x72),
-            byteArrayOf(0x55, 0x47, 0x78, 0x34),
-            byteArrayOf(0x56, 0x46, 0x56, 0x6f),
-            byteArrayOf(0x63, 0x6a, 0x59, 0x39),
-            byteArrayOf(0x5a, 0x30, 0x49, 0x72),
-            byteArrayOf(0x57, 0x58, 0x6b, 0x39)
+            byteArrayOf(0x68, 0x49, 0x4a, 0x62),           // 片段 7
+            byteArrayOf(0x72, 0x56, 0x47, 0x59),           // 片段 2
+            byteArrayOf(0x44, 0x54, 0x46, 0x6e),           // 片段 9
+            byteArrayOf(0x68, 0x46, 0x4d, 0x6a),           // 片段 1
+            byteArrayOf(0x4f, 0x47, 0x35, 0x69),           // 片段 5
+            byteArrayOf(0x56, 0x6a, 0x42, 0x49),           // 片段 10
+            byteArrayOf(0x64, 0x48, 0x56, 0x77),           // 片段 3
+            byteArrayOf(0x64, 0x58, 0x70, 0x72),           // 片段 8
+            byteArrayOf(0x55, 0x47, 0x78, 0x34),           // 片段 4
+            byteArrayOf(0x56, 0x46, 0x56, 0x6f),           // 片段 6
+            byteArrayOf(0x63, 0x6a, 0x59, 0x39),           // 片段 0
+            byteArrayOf(0x5a, 0x30, 0x49, 0x72),           // 片段 11
+            byteArrayOf(0x57, 0x58, 0x6b, 0x39)            // 片段 12
         )
         
+        // 映射表: 存储顺序 -> 实际位置
         val m = intArrayOf(10, 3, 1, 6, 8, 4, 9, 0, 7, 2, 5, 11, 12)
+        
+        // 第二层: 重组并 XOR 解密
         val k1 = 0x2a
         val combined = m.flatMap { idx ->
             s[idx].map { b -> (b.toInt() xor k1).toByte() }
         }.toByteArray()
         
         val stage1 = String(combined, Charsets.UTF_8)
+        
+        // 第三层: Base64 特征混淆 + 最终 XOR
         val k2 = 0x15
         val finalBytes = stage1.toByteArray().map { b ->
             (b.toInt() xor k2).toByte()
@@ -148,119 +76,14 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         return String(finalBytes, Charsets.UTF_8)
     }
 
-    // 备用解密方法 (不同的加密方式)
-    private fun d2(): String {
-        val encoded = "REH3eiyyMUGbrtupH8F10GNbTUhcjXkvMTgaPLxgB+Y="
-        val hash = MessageDigest.getInstance("SHA-256")
-            .digest(encoded.toByteArray())
-            .fold("") { str, it -> str + "%02x".format(it) }
-        
-        // 返回原始签名的 hash,用于交叉验证
-        return hash
-    }
-
-    // 生成安全令牌
-    private fun generateToken(signature: String): Long {
-        val data = "$signature${System.currentTimeMillis() / 10000}${packageName}"
-        return MessageDigest.getInstance("SHA-256")
-            .digest(data.toByteArray())
-            .take(8)
-            .fold(0L) { acc, byte -> (acc shl 8) or (byte.toLong() and 0xFF) }
-    }
-
-    // 验证安全令牌
-    private fun verifyToken(token: Long): Boolean {
-        val currentToken = generateToken(d1())
-        val diff = Math.abs(currentToken - token)
-        // 允许一定的时间偏差 (10秒窗口)
-        return diff < 1000
-    }
-
-    // 主验证逻辑 (不直接返回 boolean,使用状态码)
-    private fun v1(): Int {
-        if (!antiDebug()) return 0x01
-        
-        val sig1 = d1()
-        if (!verifyAppSignature(sig1)) return 0x02
-        
-        // 生成并存储令牌
-        securityToken = generateToken(sig1)
-        verificationPassed = true
-        
-        return 0xFF // 成功标志
-    }
-
-    // 二次验证 (使用不同的检查方式)
-    private fun v2(): Int {
-        if (!verificationPassed) return 0x03
-        if (!verifyToken(securityToken)) return 0x04
-        if (!antiDebug()) return 0x05
-        
-        // 验证签名 hash
-        val sig = d1()
-        val expectedHash = "5c8a8c7e8f7e4f4a9b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a"
-        val actualHash = MessageDigest.getInstance("SHA-256")
-            .digest(sig.toByteArray())
-            .fold("") { str, it -> str + "%02x".format(it) }
-        
-        if (actualHash != expectedHash) return 0x06
-        
-        return 0xFF
-    }
-
-    // 随机时间的后台验证
-    private fun startBackgroundVerification() {
-        thread(isDaemon = true) {
-            while (true) {
-                try {
-                    // 随机延迟 (防止被预测)
-                    Thread.sleep(checkInterval + Random.nextLong(-5000, 5000))
-                    
-                    if (v2() != 0xFF) {
-                        Log.e(TAG, "Security verification failed")
-                        // 静默退出,不给任何提示
-                        Process.killProcess(Process.myPid())
-                        exitProcess(0)
-                    }
-                } catch (e: Exception) {
-                    Process.killProcess(Process.myPid())
-                    exitProcess(0)
-                }
-            }
-        }
-    }
-
-    // 混淆的失败处理
-    private fun handleFailure(code: Int) {
-        // 不要立即退出,添加一些干扰
-        thread {
-            repeat(Random.nextInt(3, 8)) {
-                Thread.sleep(Random.nextLong(100, 500))
-                // 执行一些无意义的操作
-                val dummy = System.currentTimeMillis()
-                Log.d(TAG, "Check: ${dummy % 1000}")
-            }
-            
-            // 多种退出方式随机选择
-            when (Random.nextInt(3)) {
-                0 -> {
-                    val intent = Intent(Intent.ACTION_DELETE)
-                    intent.data = "package:$packageName".toUri()
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                    startActivity(intent)
-                }
-                1 -> Process.killProcess(Process.myPid())
-                else -> exitProcess(0)
-            }
-        }
-    }
-
     enum class State {
         UNKNOWN_STATE,
+
         KERNELPATCH_INSTALLED, KERNELPATCH_NEED_UPDATE, KERNELPATCH_NEED_REBOOT, KERNELPATCH_UNINSTALLING,
+
         ANDROIDPATCH_NOT_INSTALLED, ANDROIDPATCH_INSTALLED, ANDROIDPATCH_INSTALLING, ANDROIDPATCH_NEED_UPDATE, ANDROIDPATCH_UNINSTALLING,
     }
+
 
     companion object {
         const val APD_PATH = "/data/adb/apd"
@@ -364,6 +187,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                 "cp -f ${nativeDir}/libmagiskboot.so $MAGISKBOOT_BIN_PATH",
                 "chmod +x $MAGISKBOOT_BIN_PATH",
 
+
                 "touch $PACKAGE_CONFIG_FILE",
                 "touch $SU_PATH_FILE",
                 "[ -s $SU_PATH_FILE ] || echo $LEGACY_SU_PATH > $SU_PATH_FILE",
@@ -376,6 +200,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             val shell = getRootShell()
             shell.newJob().add(*cmds).to(logCallback, logCallback).exec()
 
+            // clear shell cache
             APatchCli.refresh()
 
             Log.d(TAG, "APatch installed...")
@@ -387,6 +212,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             _kpStateLiveData.postValue(State.KERNELPATCH_NEED_REBOOT)
             Log.d(TAG, "mark reboot ${result.code}")
         }
+
 
         var superKey: String = ""
             set(value) {
@@ -408,11 +234,14 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                         return@thread
                     }
 
+                    // KernelPatch version
                     val buildV = Version.getKpImg()
                     val installedV = Version.installedKPTime()
 
+
                     Log.d(TAG, "kp installed version: ${installedV}, build version: $buildV")
 
+                    // use != instead of > to enable downgrade,
                     if (buildV != installedV) {
                         _kpStateLiveData.postValue(State.KERNELPATCH_NEED_UPDATE)
                     }
@@ -423,6 +252,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                     }
                     Log.d(TAG, "kp state: " + _kpStateLiveData.value)
 
+                    // AndroidPatch version
                     val mgv = Version.getManagerVersion().second
                     val installedApdVInt = Version.installedApdVUInt()
                     Log.d(TAG, "manager version: $mgv, installed apd version: $installedApdVInt")
@@ -433,6 +263,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
 
                     if (Version.installedApdVInt > 0 && mgv.toInt() != Version.installedApdVInt) {
                         _apStateLiveData.postValue(State.ANDROIDPATCH_NEED_UPDATE)
+                        // su path
                         val suPathFile = File(SU_PATH_FILE)
                         if (suPathFile.exists()) {
                             val suPath = suPathFile.readLines()[0].trim()
@@ -455,30 +286,21 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
 
         val isArm64 = Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }
         if (!isArm64) {
-            Toast.makeText(applicationContext, "Unsupported architecture!", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "Unsupported architecture!", Toast.LENGTH_LONG)
+                .show()
             Thread.sleep(5000)
             exitProcess(0)
         }
 
-        // 多点验证
-        if (!BuildConfig.DEBUG) {
-            val result = v1()
-            if (result != 0xFF) {
-                handleFailure(result)
-                return
-            }
-            
-            // 延迟二次验证
-            thread {
-                Thread.sleep(Random.nextLong(2000, 5000))
-                val result2 = v2()
-                if (result2 != 0xFF) {
-                    handleFailure(result2)
-                    return@thread
-                }
-                
-                // 启动后台持续验证
-                startBackgroundVerification()
+        // 使用三重加密的签名验证
+        if (!BuildConfig.DEBUG && !verifyAppSignature(d())) {
+            while (true) {
+                val intent = Intent(Intent.ACTION_DELETE)
+                intent.data = "package:$packageName".toUri()
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                startActivity(intent)
+                exitProcess(0)
             }
         }
 
