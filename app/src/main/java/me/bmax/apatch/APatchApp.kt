@@ -37,45 +37,6 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
-    // 三重加密解密方法
-    private fun d(): String {
-        // 第一层: 分段存储 (打乱顺序)
-        val s = arrayOf(
-            byteArrayOf(0x68, 0x49, 0x4a, 0x62),           // 片段 7
-            byteArrayOf(0x72, 0x56, 0x47, 0x59),           // 片段 2
-            byteArrayOf(0x44, 0x54, 0x46, 0x6e),           // 片段 9
-            byteArrayOf(0x68, 0x46, 0x4d, 0x6a),           // 片段 1
-            byteArrayOf(0x4f, 0x47, 0x35, 0x69),           // 片段 5
-            byteArrayOf(0x56, 0x6a, 0x42, 0x49),           // 片段 10
-            byteArrayOf(0x64, 0x48, 0x56, 0x77),           // 片段 3
-            byteArrayOf(0x64, 0x58, 0x70, 0x72),           // 片段 8
-            byteArrayOf(0x55, 0x47, 0x78, 0x34),           // 片段 4
-            byteArrayOf(0x56, 0x46, 0x56, 0x6f),           // 片段 6
-            byteArrayOf(0x63, 0x6a, 0x59, 0x39),           // 片段 0
-            byteArrayOf(0x5a, 0x30, 0x49, 0x72),           // 片段 11
-            byteArrayOf(0x57, 0x58, 0x6b, 0x39)            // 片段 12
-        )
-        
-        // 映射表: 存储顺序 -> 实际位置
-        val m = intArrayOf(10, 3, 1, 6, 8, 4, 9, 0, 7, 2, 5, 11, 12)
-        
-        // 第二层: 重组并 XOR 解密
-        val k1 = 0x2a
-        val combined = m.flatMap { idx ->
-            s[idx].map { b -> (b.toInt() xor k1).toByte() }
-        }.toByteArray()
-        
-        val stage1 = String(combined, Charsets.UTF_8)
-        
-        // 第三层: Base64 特征混淆 + 最终 XOR
-        val k2 = 0x15
-        val finalBytes = stage1.toByteArray().map { b ->
-            (b.toInt() xor k2).toByte()
-        }.toByteArray()
-        
-        return String(finalBytes, Charsets.UTF_8)
-    }
-
     enum class State {
         UNKNOWN_STATE,
 
@@ -235,6 +196,9 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                     }
 
                     // KernelPatch version
+                    //val buildV = Version.buildKPVUInt()
+                    //val installedV = Version.installedKPVUInt()
+                    //use build time to check update
                     val buildV = Version.getKpImg()
                     val installedV = Version.installedKPTime()
 
@@ -292,8 +256,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             exitProcess(0)
         }
 
-        // 使用三重加密的签名验证
-        if (!BuildConfig.DEBUG && !verifyAppSignature(d())) {
+        if (!BuildConfig.DEBUG && !verifyAppSignature("REH3eiyyMUGbrtupH8F10GNbTUhcjXkvMTgaPLxgB+Y=")) {
             while (true) {
                 val intent = Intent(Intent.ACTION_DELETE)
                 intent.data = "package:$packageName".toUri()
@@ -304,6 +267,9 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             }
         }
 
+        // TODO: We can't totally protect superkey from be stolen by root or LSPosed-like injection tools in user space, the only way is don't use superkey,
+        // TODO: 1. make me root by kernel
+        // TODO: 2. remove all usage of superkey
         sharedPreferences = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
         APatchKeyHelper.setSharedPreferences(sharedPreferences)
         superKey = APatchKeyHelper.readSPSuperKey()
