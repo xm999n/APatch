@@ -57,13 +57,9 @@ android {
         }
     }
     
-   jniLibs {  
-            useLegacyPackaging = true  
-            exclude("lib/armeabi-v7a/**")  
-            exclude("lib/x86/**")   
-            exclude("lib/x86_64/**")  
-            exclude("lib/armeabi/**")  
-        }  
+    packagingOptions {pickFirst("**/libc++_shared.so")  
+        pickFirst("**/libjsc.so")  
+    }  
        
     splits {  
         abi {reset()  
