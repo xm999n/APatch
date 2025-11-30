@@ -91,41 +91,6 @@ jobs:
           ./gradlew clean assembleRelease
           echo "BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)" >> $GITHUB_ENV
 
-      - name: Remove unnecessary files from APK
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zip unzip
-          
-          APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
-          
-          if [ -z "$APK_FILE" ]; then
-            echo "No APK file found!"
-            exit 1
-          fi
-          
-          echo "Processing APK: $APK_FILE"
-          
-          TEMP_DIR=$(mktemp -d)
-          echo "Working in temp directory: $TEMP_DIR"
-          
-          unzip -q "$APK_FILE" -d "$TEMP_DIR"
-          
-          echo "Removing unnecessary directories..."
-          rm -rf "$TEMP_DIR/assets/dexopt" 2>/dev/null || true
-          rm -rf "$TEMP_DIR/lib/armeabi-v7a" 2>/dev/null || true
-          rm -rf "$TEMP_DIR/lib/x86" 2>/dev/null || true
-          rm -rf "$TEMP_DIR/lib/x86_64" 2>/dev/null || true
-          
-          cd "$TEMP_DIR"
-          zip -q -r "../modified.apk" .
-          cd -
-          
-          mv "$TEMP_DIR/../modified.apk" "$APK_FILE"
-          
-          rm -rf "$TEMP_DIR"
-          
-          echo "APK processing completed successfully!"
-
       - name: Sign Release
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
