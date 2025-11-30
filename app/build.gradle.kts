@@ -94,7 +94,9 @@ android {
             exclude("lib/x86_64/**")  
             exclude("lib/armeabi/**")  
         }              
+        }
     }
+    
     splits {  
            abi {  
            reset()  
@@ -102,7 +104,6 @@ android {
            isUniversalApk = false  
            }  
         }  
-    }
 
     externalNativeBuild {
         cmake {
