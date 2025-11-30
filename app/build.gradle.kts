@@ -88,11 +88,20 @@ android {
 
     packaging {
         resources {
-            // 强烈建议不要使用 "**"，这会排除所有资源，几乎等于摧毁 apk 的资源。
-            // excludes += "**" // <- 注释掉或删除，除非你非常确定要这样做。
-            merges += "META-INF/com/google/android/**"
-            // 如果你确实需要排除特定文件示例：
-            // excludes += "META-INF/DEPENDENCY"
+        merges += "META-INF/MANIFEST.MF"  
+        merges += "META-INF/ALIAS_AP.SF"  
+        merges += "META-INF/ALIAS_AP.RSA"  
+        merges += "META-INF/com/google/android/**"  
+        excludes += "kotlin/**"  
+        excludes += "okhttp3/**"  
+        excludes += "org/**"  
+        excludes += "DebugProbesKt.bin"  
+        excludes += "kotlin-tooling-metadata.json"  
+        excludes += "assets/dexopt/**"  
+        excludes += "META-INF/**"  
+        pickFirst("META-INF/MANIFEST.MF")  
+        pickFirst("META-INF/ALIAS_AP.SF")  
+        pickFirst("META-INF/ALIAS_AP.RSA")
         }
         jniLibs {
             useLegacyPackaging = true
