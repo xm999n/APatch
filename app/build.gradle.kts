@@ -83,9 +83,6 @@ android {
     }
 
     packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
         resources {
             excludes += "**"
             merges += "META-INF/com/google/android/**"
