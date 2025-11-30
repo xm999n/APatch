@@ -90,6 +90,21 @@ android {
             excludes += "**"
             merges += "META-INF/com/google/android/**"
         }
+        jniLibs {  
+            useLegacyPackaging = true  
+            exclude("lib/armeabi-v7a/**")  
+            exclude("lib/x86/**")   
+            exclude("lib/x86_64/**")  
+            exclude("lib/armeabi/**")  
+        }              
+        splits {  
+            abi {  
+            reset()  
+            include("arm64-v8a")  
+            isUniversalApk = false  
+        }  
+        }  
+    }
     }
 
     externalNativeBuild {
@@ -286,11 +301,6 @@ dependencies {
 
     compileOnly(libs.cxx)
     
-    implementation("androidx.graphics:graphics-path:1.0.0") {  
-        attributes {  
-            attribute(Attribute.of("android-abi", String.class), "arm64-v8a")  
-        }  
-    }
 }
 cmaker {
     default {
