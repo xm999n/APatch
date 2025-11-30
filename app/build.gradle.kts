@@ -95,12 +95,12 @@ android {
             exclude("lib/armeabi/**")  
         }              
     }
-            splits {  
-            abi {  
-            reset()  
-            include("arm64-v8a")  
-            isUniversalApk = false  
-        }  
+    splits {  
+           abi {  
+           reset()  
+           include("arm64-v8a")  
+           isUniversalApk = false  
+           }  
         }  
     }
 
