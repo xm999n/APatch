@@ -56,6 +56,17 @@ android {
     }  
         }
     }
+    
+    packagingOptions {pickFirst("**/libc++_shared.so")  
+        pickFirst("**/libjsc.so")  
+    }  
+       
+    splits {  
+        abi {reset()  
+            include("arm64-v8a")  
+            isUniversalApk = false  
+        }  
+    }     
 
     dependenciesInfo.includeInApk = false
 
