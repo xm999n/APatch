@@ -94,14 +94,14 @@ android {
             exclude("lib/x86_64/**")  
             exclude("lib/armeabi/**")  
         }              
-        splits {  
+    }
+            splits {  
             abi {  
             reset()  
             include("arm64-v8a")  
             isUniversalApk = false  
         }  
         }  
-    }
     }
 
     externalNativeBuild {
