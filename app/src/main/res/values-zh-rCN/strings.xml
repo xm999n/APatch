@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="apm">magiskmodule</string>
-    <string name="super_key">超级密钥</string>
+    <string name="apm">APM</string>
+    <string name="super_key">superkey</string>
     <string name="app_name" translatable="false">APatch</string>
     <string name="kpm">kernelpatch</string>
-    <string name="android_patch">系统补丁</string>
-    <string name="save_log">保存日志</string>
+    <string name="android_patch">system.patch</string>
+    <string name="save_log">save.log</string>
     <string name="log_saved">日志已保存</string>
     <string name="send_log">发送日志</string>
     <string name="patch_warnning">安装过程存在风险，请确保您的数据已备份。</string>
