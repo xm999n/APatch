@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.MutableLiveData
 import me.bmax.apatch.APApplication
+import me.bmax.apatch.ui.webui.MonetColorsProvider
 
 @Composable
 private fun SystemBarStyle(
@@ -84,6 +85,7 @@ fun APatchTheme(
         )
     }
     var customColorScheme by remember { mutableStateOf(prefs.getString("custom_color", "blue")) }
+    var amoledMode by remember { mutableStateOf(prefs.getBoolean("amoled_mode", false)) }
 
     val refreshThemeObserver by refreshTheme.observeAsState(false)
     if (refreshThemeObserver == true) {
@@ -94,6 +96,7 @@ fun APatchTheme(
             true
         ) else false
         customColorScheme = prefs.getString("custom_color", "blue")
+        amoledMode = prefs.getBoolean("amoled_mode", false)
         refreshTheme.postValue(false)
     }
 
@@ -162,11 +165,32 @@ fun APatchTheme(
         }
     }
 
+    // AMOLED: override surface/background family to pure black when dark mode is active
+    val finalColorScheme = if (amoledMode && darkTheme) {
+        colorScheme.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceVariant = Color(0xFF1C1C1C),
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF0D0D0D),
+            surfaceContainer = Color(0xFF141414),
+            surfaceContainerHigh = Color(0xFF1C1C1C),
+            surfaceContainerHighest = Color(0xFF242424),
+        )
+    } else {
+        colorScheme
+    }
+
     SystemBarStyle(
         darkMode = darkTheme
     )
 
     MaterialTheme(
-        colorScheme = colorScheme, typography = Typography, content = content
+        colorScheme = finalColorScheme,
+        typography = Typography,
+        content = {
+            MonetColorsProvider.UpdateCss()
+            content()
+        }
     )
 }

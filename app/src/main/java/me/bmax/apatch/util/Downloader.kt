@@ -54,7 +54,7 @@ fun download(
 }
 
 fun checkNewVersion(): LatestVersionInfo {
-    val url = "https://api.github.com/repos/bmax121/APatch/releases/latest"
+    val url = "https://api.github.com/repos/xm999n/APatch/releases/latest"
     val defaultValue = LatestVersionInfo()
     runCatching {
         apApp.okhttpClient.newCall(okhttp3.Request.Builder().url(url).build()).execute()

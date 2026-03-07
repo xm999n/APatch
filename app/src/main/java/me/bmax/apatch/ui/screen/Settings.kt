@@ -404,6 +404,21 @@ fun SettingScreen() {
                 }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
             }
 
+            // AMOLED mode
+            var amoledMode by rememberSaveable {
+                mutableStateOf(prefs.getBoolean("amoled_mode", false))
+            }
+            SwitchItem(
+                icon = Icons.Filled.InvertColors,
+                title = stringResource(id = R.string.settings_amoled_mode),
+                summary = stringResource(id = R.string.settings_amoled_mode_summary),
+                checked = amoledMode
+            ) {
+                prefs.edit { putBoolean("amoled_mode", it) }
+                amoledMode = it
+                refreshTheme.value = true
+            }
+
             // su path
             if (kPatchReady) {
                 ListItem(

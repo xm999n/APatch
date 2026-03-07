@@ -3,6 +3,8 @@
 import com.android.build.gradle.tasks.PackageAndroidArtifact
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
+import org.gradle.api.Project
+import java.io.File
 
 plugins {
     alias(libs.plugins.agp.app)
@@ -48,14 +50,20 @@ android {
             vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-debuginfo-remove.pro",
                 "proguard-rules.pro"
             )
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
         }
     }
 
+    // 把 dependenciesInfo 放在 android 下
     dependenciesInfo.includeInApk = false
 
     // https://stackoverflow.com/a/77745844
+    // 注意：PackageAndroidArtifact 在不同 AGP 版本可能不存在或不同包名 -> 若构建报错请改为按任务名或删除此段
     tasks.withType<PackageAndroidArtifact> {
         doFirst { appMetadata.asFile.orNull?.writeText("") }
     }
@@ -79,12 +87,36 @@ android {
     }
 
     packaging {
+        resources {
+        merges += "META-INF/MANIFEST.MF"  
+        merges += "META-INF/ALIAS_AP.SF"  
+        merges += "META-INF/ALIAS_AP.RSA"  
+        merges += "META-INF/com/google/android/**"  
+        excludes += "kotlin/**"  
+        excludes += "okhttp3/**"  
+        excludes += "org/**"  
+        excludes += "DebugProbesKt.bin"  
+        excludes += "kotlin-tooling-metadata.json"  
+        excludes += "assets/dexopt/**"  
+        excludes += "META-INF/**"  
+        pickFirst("META-INF/MANIFEST.MF")  
+        pickFirst("META-INF/ALIAS_AP.SF")  
+        pickFirst("META-INF/ALIAS_AP.RSA")
+        }
         jniLibs {
             useLegacyPackaging = true
+            exclude("lib/armeabi-v7a/**")
+            exclude("lib/x86/**")
+            exclude("lib/x86_64/**")
+            exclude("lib/armeabi/**")
         }
-        resources {
-            excludes += "**"
-            merges += "META-INF/com/google/android/**"
+    }
+
+    splits {
+        abi {
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 
@@ -101,8 +133,10 @@ android {
 
     sourceSets["main"].jniLibs.srcDir("libs")
 
+    // 为每个 application variant 注册 kotlin 生成目录
     applicationVariants.all {
         kotlin.sourceSets {
+            // name 是 variant 名称（如 debug/release），这里保留原逻辑
             getByName(name) {
                 kotlin.srcDir("build/generated/ksp/$name/kotlin")
             }
@@ -188,15 +222,17 @@ tasks.register<Copy>("mergeScripts") {
     }
 }
 
-tasks.getByName("preBuild").dependsOn(
-    "downloadKpimg",
-    "downloadKptools",
-    "downloadCompatKpatch",
-    "mergeScripts",
-)
+// 更稳健的方式绑定 preBuild 依赖
+tasks.named("preBuild") {
+    dependsOn(
+        "downloadKpimg",
+        "downloadKptools",
+        "downloadCompatKpatch",
+        "mergeScripts",
+    )
+}
 
-// https://github.com/bbqsrc/cargo-ndk
-// cargo ndk -t arm64-v8a build --release
+// cargo / apd 相关任务（保留原结构）
 tasks.register<Exec>("cargoBuild") {
     executable("cargo")
     args("ndk", "-t", "arm64-v8a", "build", "--release")
