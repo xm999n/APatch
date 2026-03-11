@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.screen
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -44,36 +46,35 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.R
+import me.bmax.apatch.util.rootShellForResult
 import java.io.File
 
 private const val UMOUNT_FILE = "/data/adb/ap/umount"
 
 private fun loadPaths(): List<String> {
-    return try {
-        val f = File(UMOUNT_FILE)
-        if (f.exists()) f.readLines().filter { it.isNotBlank() } else emptyList()
-    } catch (_: Exception) {
-        emptyList()
-    }
+    val result = rootShellForResult("cat '$UMOUNT_FILE' 2>/dev/null || true")
+    return result.out.filter { it.isNotBlank() }
 }
 
-private fun savePaths(paths: List<String>) {
-    try {
-        val f = File(UMOUNT_FILE)
-        f.parentFile?.mkdirs()
-        f.writeText(paths.filter { it.isNotBlank() }.joinToString("\n"))
-    } catch (_: Exception) {
-    }
+private fun savePaths(context: Context, paths: List<String>) {
+    val tmp = File(context.cacheDir, "umount_tmp")
+    tmp.writeText(paths.filter { it.isNotBlank() }.joinToString("\n"))
+    rootShellForResult(
+        "mkdir -p /data/adb/ap",
+        "cp '${tmp.absolutePath}' '$UMOUNT_FILE'",
+        "chmod 644 '$UMOUNT_FILE'"
+    )
+    tmp.delete()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
 fun CustomUmountScreen(navigator: DestinationsNavigator) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val paths = remember { mutableStateListOf<String>() }
 
-    // load on first composition
     remember {
         scope.launch(Dispatchers.IO) {
             val loaded = loadPaths()
@@ -88,7 +89,7 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
     var inputText by remember { mutableStateOf("") }
 
     fun save() {
-        scope.launch(Dispatchers.IO) { savePaths(paths.toList()) }
+        scope.launch(Dispatchers.IO) { savePaths(context, paths.toList()) }
     }
 
     if (showAddDialog) {
@@ -188,7 +189,9 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
                                 )
                             }
                         }
-                        if (index < paths.lastIndex) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        if (index < paths.lastIndex) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        }
                     }
                 }
             }

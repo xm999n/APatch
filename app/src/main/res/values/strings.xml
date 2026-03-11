@@ -54,8 +54,8 @@
     <string name="home_need_update">New version available</string>
     <string name="kpatch_version">Version: %s</string>
     <string name="apatch_version">Version: %s</string>
-    <string name="apatch_version_update">Version: %s -&gt; %s</string>
-    <string name="kpatch_version_update">Version: %s -&gt; %s</string>
+    <string name="apatch_version_update" formatted="false">Version: %s -&gt; %s</string>
+    <string name="kpatch_version_update" formatted="false">Version: %s -&gt; %s</string>
     <string name="kpatch_shadow_path_title">kpatch</string>
     <string name="home_auth_key_title">Enter SuperKey</string>
     <string name="home_auth_key_desc">Start after certification</string>
@@ -218,7 +218,7 @@
     <string name="umount_title">Custom Umount</string>
     <string name="umount_summary">Unmount specific paths after module mounts</string>
     <string name="umount_add_path">Add path</string>
-    <string name="umount_path_hint">e.g. /debug_ramdisk</string>
+    <string name="umount_path_hint">e.g. /system/lib/libfoo.so</string>
     <string name="umount_empty">No paths configured</string>
 
     <string name="settings_custom_color_theme">Color theme</string>
