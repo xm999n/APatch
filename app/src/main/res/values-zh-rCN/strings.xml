@@ -182,6 +182,11 @@
     <string name="settings_use_system_color_theme_summary">使用由系统由壁纸取色生成的主题</string>
     <string name="settings_amoled_mode">AMOLED 模式</string>
     <string name="settings_amoled_mode_summary">在深色模式下使用纯黑背景，在 OLED/AMOLED 屏幕上节省电量</string>
+    <string name="umount_title">自定义卸载</string>
+    <string name="umount_summary">在模块挂载后卸载指定路径</string>
+    <string name="umount_add_path">添加路径</string>
+    <string name="umount_path_hint">例如 /debug_ramdisk</string>
+    <string name="umount_empty">暂无配置路径</string>
     <string name="settings_custom_color_theme">颜色主题</string>
     <string name="amber_theme">琥珀色主题</string>
     <string name="blue_theme">蓝色主题</string>

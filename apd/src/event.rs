@@ -474,6 +474,26 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
 
     run_stage("post-mount", superkey, true);
 
+    // custom umount: read /data/adb/ap/umount and unmount each path
+    let umount_file = Path::new(defs::WORKING_DIR).join("umount");
+    if umount_file.exists() {
+        match fs::read_to_string(&umount_file) {
+            Ok(content) => {
+                for line in content.lines() {
+                    let path = line.trim();
+                    if path.is_empty() {
+                        continue;
+                    }
+                    info!("custom umount: {}", path);
+                    if let Err(e) = unmount(path, UnmountFlags::DETACH) {
+                        warn!("custom umount {} failed: {}", path, e);
+                    }
+                }
+            }
+            Err(e) => warn!("failed to read umount file: {}", e),
+        }
+    }
+
     env::set_current_dir("/").with_context(|| "failed to chdir to /")?;
 
     Ok(())

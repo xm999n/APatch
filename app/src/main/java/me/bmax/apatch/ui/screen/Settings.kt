@@ -82,6 +82,8 @@ import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.CustomUmountScreenDestination
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -114,7 +116,7 @@ import java.util.Locale
 @Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SettingScreen() {
+fun SettingScreen(navigator: DestinationsNavigator) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
@@ -418,6 +420,16 @@ fun SettingScreen() {
                 amoledMode = it
                 refreshTheme.value = true
             }
+
+            // Custom Umount
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.RemoveFromQueue, null) },
+                headlineContent = { Text(stringResource(R.string.umount_title)) },
+                supportingContent = { Text(stringResource(R.string.umount_summary)) },
+                modifier = androidx.compose.ui.Modifier.clickable {
+                    navigator.navigate(CustomUmountScreenDestination)
+                }
+            )
 
             // su path
             if (kPatchReady) {
