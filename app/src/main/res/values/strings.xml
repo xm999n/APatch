@@ -221,6 +221,8 @@
     <string name="umount_path_hint">e.g. /system/lib/libfoo.so</string>
     <string name="umount_empty">No paths configured</string>
     <string name="umount_stage">Unmount stage</string>
+    <string name="umount_edit">Edit path</string>
+    <string name="umount_selected">%d selected</string>
 
     <string name="settings_custom_color_theme">Color theme</string>
     <string name="amber_theme">Amber</string>

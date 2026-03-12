@@ -188,6 +188,8 @@
     <string name="umount_path_hint">例如 /system/lib/libfoo.so</string>
     <string name="umount_empty">暂无配置路径</string>
     <string name="umount_stage">卸载阶段</string>
+    <string name="umount_edit">编辑路径</string>
+    <string name="umount_selected">已选 %d 项</string>
     <string name="settings_custom_color_theme">颜色主题</string>
     <string name="amber_theme">琥珀色主题</string>
     <string name="blue_theme">蓝色主题</string>
