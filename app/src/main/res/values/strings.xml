@@ -220,6 +220,7 @@
     <string name="umount_add_path">Add path</string>
     <string name="umount_path_hint">e.g. /system/lib/libfoo.so</string>
     <string name="umount_empty">No paths configured</string>
+    <string name="umount_stage">Unmount stage</string>
 
     <string name="settings_custom_color_theme">Color theme</string>
     <string name="amber_theme">Amber</string>

@@ -474,29 +474,49 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
 
     run_stage("post-mount", superkey, true);
 
-    // custom umount: read /data/adb/ap/umount and unmount each path
-    let umount_file = Path::new(defs::WORKING_DIR).join("umount");
-    if umount_file.exists() {
-        match fs::read_to_string(&umount_file) {
-            Ok(content) => {
-                for line in content.lines() {
-                    let path = line.trim();
-                    if path.is_empty() {
-                        continue;
-                    }
-                    info!("custom umount: {}", path);
-                    if let Err(e) = unmount(path, UnmountFlags::DETACH) {
-                        warn!("custom umount {} failed: {}", path, e);
-                    }
-                }
-            }
-            Err(e) => warn!("failed to read umount file: {}", e),
-        }
-    }
+    run_custom_umount("post-fs-data");
 
     env::set_current_dir("/").with_context(|| "failed to chdir to /")?;
 
     Ok(())
+}
+
+fn run_custom_umount(stage: &str) {
+    let umount_file = Path::new(defs::WORKING_DIR).join("umount");
+    if !umount_file.exists() {
+        return;
+    }
+    match fs::read_to_string(&umount_file) {
+        Ok(content) => {
+            for line in content.lines() {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                // format: "stage:path" or legacy bare path (treated as service)
+                let (line_stage, path) = if let Some(pos) = line.find(':') {
+                    let s = &line[..pos];
+                    let p = &line[pos + 1..];
+                    if s == "post-fs-data" || s == "service" {
+                        (s, p)
+                    } else {
+                        // bare path with no recognized stage prefix
+                        ("service", line)
+                    }
+                } else {
+                    ("service", line)
+                };
+                if line_stage != stage {
+                    continue;
+                }
+                info!("custom umount [{}]: {}", stage, path);
+                if let Err(e) = unmount(path, UnmountFlags::DETACH) {
+                    warn!("custom umount {} failed: {}", path, e);
+                }
+            }
+        }
+        Err(e) => warn!("failed to read umount file: {}", e),
+    }
 }
 
 fn run_stage(stage: &str, superkey: Option<String>, block: bool) {
@@ -530,6 +550,8 @@ pub fn on_services(superkey: Option<String>) -> Result<()> {
     info!("on_services triggered!");
     run_stage("service", superkey, false);
 
+    run_custom_umount("service");
+
     Ok(())
 }
 
@@ -559,6 +581,8 @@ pub fn on_boot_completed(superkey: Option<String>) -> Result<()> {
     info!("on_boot_completed triggered!");
 
     run_stage("boot-completed", superkey, false);
+
+    run_custom_umount("boot-completed");
 
     run_uid_monitor();
     Ok(())

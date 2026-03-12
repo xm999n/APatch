@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,15 +52,35 @@ import me.bmax.apatch.util.rootShellForResult
 import java.io.File
 
 private const val UMOUNT_FILE = "/data/adb/ap/umount"
+private const val STAGE_POST_FS = "post-fs-data"
+private const val STAGE_SERVICE = "service"
 
-private fun loadPaths(): List<String> {
-    val result = rootShellForResult("cat '$UMOUNT_FILE' 2>/dev/null || true")
-    return result.out.filter { it.isNotBlank() }
+private data class UmountEntry(val stage: String, val path: String) {
+    fun serialize() = "$stage:$path"
 }
 
-private fun savePaths(context: Context, paths: List<String>) {
+private fun parseEntry(line: String): UmountEntry? {
+    if (line.isBlank()) return null
+    val colonIdx = line.indexOf(':')
+    if (colonIdx > 0) {
+        val s = line.substring(0, colonIdx)
+        val p = line.substring(colonIdx + 1)
+        if ((s == STAGE_POST_FS || s == STAGE_SERVICE) && p.isNotBlank()) {
+            return UmountEntry(s, p)
+        }
+    }
+    // legacy bare path → service
+    return UmountEntry(STAGE_SERVICE, line.trim())
+}
+
+private fun loadEntries(): List<UmountEntry> {
+    val result = rootShellForResult("cat '$UMOUNT_FILE' 2>/dev/null || true")
+    return result.out.mapNotNull { parseEntry(it) }
+}
+
+private fun saveEntries(context: Context, entries: List<UmountEntry>) {
     val tmp = File(context.cacheDir, "umount_tmp")
-    tmp.writeText(paths.filter { it.isNotBlank() }.joinToString("\n"))
+    tmp.writeText(entries.joinToString("\n") { it.serialize() })
     rootShellForResult(
         "mkdir -p /data/adb/ap",
         "cp '${tmp.absolutePath}' '$UMOUNT_FILE'",
@@ -73,23 +95,24 @@ private fun savePaths(context: Context, paths: List<String>) {
 fun CustomUmountScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val paths = remember { mutableStateListOf<String>() }
+    val entries = remember { mutableStateListOf<UmountEntry>() }
 
     remember {
         scope.launch(Dispatchers.IO) {
-            val loaded = loadPaths()
+            val loaded = loadEntries()
             withContext(Dispatchers.Main) {
-                paths.clear()
-                paths.addAll(loaded)
+                entries.clear()
+                entries.addAll(loaded)
             }
         }
     }
 
     var showAddDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
+    var selectedStage by remember { mutableStateOf(STAGE_SERVICE) }
 
     fun save() {
-        scope.launch(Dispatchers.IO) { savePaths(context, paths.toList()) }
+        scope.launch(Dispatchers.IO) { saveEntries(context, entries.toList()) }
     }
 
     if (showAddDialog) {
@@ -97,26 +120,53 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
             onDismissRequest = {
                 showAddDialog = false
                 inputText = ""
+                selectedStage = STAGE_SERVICE
             },
             title = { Text(stringResource(R.string.umount_add_path)) },
             text = {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    label = { Text(stringResource(R.string.umount_path_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column {
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        label = { Text(stringResource(R.string.umount_path_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.umount_stage),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row {
+                        FilterChip(
+                            selected = selectedStage == STAGE_POST_FS,
+                            onClick = { selectedStage = STAGE_POST_FS },
+                            label = { Text("post-fs-data") }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        FilterChip(
+                            selected = selectedStage == STAGE_SERVICE,
+                            onClick = { selectedStage = STAGE_SERVICE },
+                            label = { Text("service") }
+                        )
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
                     val p = inputText.trim()
-                    if (p.isNotEmpty() && !paths.contains(p)) {
-                        paths.add(p)
-                        save()
+                    if (p.isNotEmpty()) {
+                        val entry = UmountEntry(selectedStage, p)
+                        if (!entries.any { it.stage == entry.stage && it.path == entry.path }) {
+                            entries.add(entry)
+                            save()
+                        }
                     }
                     showAddDialog = false
                     inputText = ""
+                    selectedStage = STAGE_SERVICE
                 }) {
                     Text(stringResource(android.R.string.ok))
                 }
@@ -125,6 +175,7 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
                 TextButton(onClick = {
                     showAddDialog = false
                     inputText = ""
+                    selectedStage = STAGE_SERVICE
                 }) {
                     Text(stringResource(android.R.string.cancel))
                 }
@@ -154,7 +205,7 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (paths.isEmpty()) {
+            if (entries.isEmpty()) {
                 Text(
                     text = stringResource(R.string.umount_empty),
                     style = MaterialTheme.typography.bodyMedium,
@@ -165,21 +216,27 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
                 )
             } else {
                 LazyColumn {
-                    itemsIndexed(paths) { index, path ->
+                    itemsIndexed(entries) { index, entry ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = path,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = entry.path,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = entry.stage,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Spacer(Modifier.width(8.dp))
                             IconButton(onClick = {
-                                paths.removeAt(index)
+                                entries.removeAt(index)
                                 save()
                             }) {
                                 Icon(
@@ -189,7 +246,7 @@ fun CustomUmountScreen(navigator: DestinationsNavigator) {
                                 )
                             }
                         }
-                        if (index < paths.lastIndex) {
+                        if (index < entries.lastIndex) {
                             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         }
                     }
