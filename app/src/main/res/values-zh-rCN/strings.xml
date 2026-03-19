@@ -225,4 +225,7 @@
     <string name="settings_lite_mode_mode_summary">开启后系统模块功能可能会展现失败，但某些情形下仍能有效地规避检测，重启生效。</string>
     <string name="settings_force_overlayfs_mode">强制使用 OverlayFS</string>
     <string name="settings_force_overlayfs_mode_summary">在内核支持可用时用 OverlayFS 而非 Magic Mount 来挂载系统模块，需要重启生效。</string>
+    <string name="selinux_warning_title">SELinux 未处于强制模式</string>
+    <string name="selinux_warning_body">SELinux 当前处于宽容（Permissive）或已禁用状态，可能降低系统安全性并影响 APatch 功能，建议设置为强制（Enforcing）模式。</string>
+    <string name="selinux_enforce">设为强制模式</string>
 </resources>

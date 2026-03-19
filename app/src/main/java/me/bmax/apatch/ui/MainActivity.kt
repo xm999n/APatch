@@ -30,6 +30,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -39,12 +42,18 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -64,9 +73,11 @@ import com.ramcosta.composedestinations.rememberNavHostEngine
 import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import me.bmax.apatch.APApplication
+import me.bmax.apatch.R
 import me.bmax.apatch.ui.screen.BottomBarDestination
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
+import me.bmax.apatch.util.rootShellForResult
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
@@ -92,6 +103,43 @@ class MainActivity : AppCompatActivity() {
                 val navController = rememberNavController()
                 val snackBarHostState = remember { SnackbarHostState() }
                 val configuration = LocalConfiguration.current
+                val scope = rememberCoroutineScope()
+
+                // SELinux enforcement check
+                var showSeLinuxDialog by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    val enforce = runCatching {
+                        java.io.File("/sys/fs/selinux/enforce").readText().trim()
+                    }.getOrDefault("1")
+                    if (enforce != "1") showSeLinuxDialog = true
+                }
+                if (showSeLinuxDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showSeLinuxDialog = false },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Filled.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        title = { Text(stringResource(R.string.selinux_warning_title)) },
+                        text = { Text(stringResource(R.string.selinux_warning_body)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showSeLinuxDialog = false
+                                scope.launch(Dispatchers.IO) {
+                                    rootShellForResult("setenforce 1")
+                                }
+                            }) { Text(stringResource(R.string.selinux_enforce)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showSeLinuxDialog = false }) {
+                                Text(stringResource(android.R.string.cancel))
+                            }
+                        }
+                    )
+                }
                 val bottomBarRoutes = remember {
                     BottomBarDestination.entries.map { it.direction.route }.toSet()
                 }

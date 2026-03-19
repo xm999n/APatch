@@ -258,4 +258,7 @@
     <string name="settings_lite_mode_mode_summary">APModule functions may exhibit failures after being enabled, but in some cases they can still effectively avoid detection. Reboot required.</string>
     <string name="settings_force_overlayfs_mode">Force use of OverlayFS</string>
     <string name="settings_force_overlayfs_mode_summary">Use OverlayFS to mount APModules instead of Magic Mount when kernel support is available. Reboot required.</string>
+    <string name="selinux_warning_title">SELinux Not Enforcing</string>
+    <string name="selinux_warning_body">SELinux is currently in Permissive or Disabled mode. This may reduce system security and affect APatch functionality. It is recommended to set it to Enforcing mode.</string>
+    <string name="selinux_enforce">Set Enforcing</string>
 </resources>
