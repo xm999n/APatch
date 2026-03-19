@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -116,7 +117,13 @@ class WebUIActivity : ComponentActivity() {
         }
 
         val prefs = APApplication.sharedPreferences
-        WebView.setWebContentsDebuggingEnabled(prefs.getBoolean("enable_web_debugging", false))
+        try {
+            WebView.setWebContentsDebuggingEnabled(prefs.getBoolean("enable_web_debugging", false))
+        } catch (e: Exception) {
+            Log.e("WebUIActivity", "WebView init failed, WebUI unavailable: $e")
+            finish()
+            return
+        }
 
         val webRoot = File("/data/adb/modules/${moduleId}/webroot")
         insets = Insets(0, 0, 0, 0)
