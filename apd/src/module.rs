@@ -1,6 +1,7 @@
-#[allow(clippy::wildcard_imports)]
-use crate::utils::*;
-use crate::{assets, defs, restorecon};
+#[cfg(unix)]
+use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
+use crate::mpolicy::{get_policy_main};
+use crate::lua;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use const_format::concatcp;
 use is_executable::is_executable;
@@ -18,8 +19,9 @@ use std::{
 };
 use zip_extensions::zip_extract_file_to_memory;
 
-#[cfg(unix)]
-use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
+#[allow(clippy::wildcard_imports)]
+use crate::utils::*;
+use crate::{assets, defs, restorecon};
 
 const INSTALLER_CONTENT: &str = include_str!("./installer.sh");
 const INSTALLER_CONTENT_: &str = include_str!("./installer_bind.sh");
@@ -158,12 +160,13 @@ pub fn load_sepolicy_rule() -> Result<()> {
         }
 
         info!("load policy: {}", &rule_file.display());
-        Command::new(assets::MAGISKPOLICY_PATH)
-            .arg("--live")
-            .arg("--apply")
-            .arg(&rule_file)
-            .status()
-            .with_context(|| format!("Failed to exec {}", rule_file.display()))?;
+        let mut sepol = get_policy_main(&[
+            "magiskpolicy".to_string(),
+            "--live".to_string(),
+            "--apply".to_string(),
+            rule_file.display().to_string()
+        ])?;
+
         Ok(())
     })?;
 

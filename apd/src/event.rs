@@ -7,6 +7,7 @@ use crate::{
     supercall::{init_load_package_uid_config, init_load_su_path, refresh_ap_package_list},
     utils::{self, ensure_clean_dir},
 };
+use crate::mpolicy::{get_policy_main};
 use anyhow::{Context, Result, bail, ensure};
 use extattr::{Flags as XattrFlags, lgetxattr, lsetxattr};
 use libc::SIGPWR;
@@ -27,9 +28,6 @@ use std::time::Duration;
 use std::{collections::HashMap, thread};
 use std::{env, fs, io};
 use walkdir::WalkDir;
-
-fn copy_with_xattr(src: &Path, dest: &Path) -> io::Result<()> {
-    fs::copy(src, dest)?;
 
 fn copy_with_xattr(src: &Path, dest: &Path) -> io::Result<()> {
     fs::copy(src, dest)?;
@@ -285,8 +283,14 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
 
     init_load_su_path(&superkey);
 
-    let args = ["/data/adb/ap/bin/magiskpolicy", "--magisk", "--live"];
-    fork_for_result("/data/adb/ap/bin/magiskpolicy", &args, &superkey);
+    let mut sepol = get_policy_main(&[
+        "magiskpolicy".to_string(),
+        "--live".to_string(),
+    ])?;
+    sepol.magisk_rules();
+    sepol.to_file("/sys/fs/selinux/load")
+            .context("Cannot apply policy")?;
+
 
     info!("Re-privilege apd profile after injecting sepolicy");
     supercall::privilege_apd_profile(&superkey);
