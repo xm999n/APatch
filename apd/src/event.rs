@@ -1,6 +1,5 @@
 use crate::magic_mount;
 use crate::module;
-use crate::supercall::fork_for_result;
 use crate::utils::{ensure_dir_exists, ensure_file_exists, get_work_dir, switch_cgroups};
 use crate::{
     assets, defs, mount, restorecon, supercall,
@@ -327,7 +326,7 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     args = vec![
         "-s",
         "9",
-        "120s",
+        "45s",
         "logcat",
         "-b",
         "main,system,crash",
@@ -346,7 +345,7 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
             .args(args)
             .spawn()
     };
-    args = vec!["-s", "9", "120s", "dmesg", "-w"];
+    args = vec!["-s", "9", "45s", "dmesg", "-w"];
     let _result = unsafe {
         Command::new("timeout")
             .process_group(0)
