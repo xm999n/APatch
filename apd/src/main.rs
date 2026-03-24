@@ -15,6 +15,7 @@ mod mpolicy;
 mod supercall;
 mod utils;
 mod resetprop;
+mod lua;
 fn main() -> anyhow::Result<()> {
     cli::run()
 }
