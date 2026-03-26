@@ -168,7 +168,6 @@ fun APatchTheme(
 
     val tunedColorScheme = colorScheme.withUnifiedSurfaces(darkTheme = darkTheme)
 
-    // AMOLED: override surface/background family to pure black when dark mode is active
     val finalColorScheme = if (amoledMode && darkTheme) {
         tunedColorScheme.copy(
             background = Color.Black,
@@ -206,39 +205,39 @@ fun APatchTheme(
 private fun ColorScheme.withUnifiedSurfaces(darkTheme: Boolean): ColorScheme {
     return if (darkTheme) {
         copy(
-            background = Color(0xFF11151C),
-            onBackground = Color(0xFFE8ECF3),
-            surface = Color(0xFF11151C),
-            onSurface = Color(0xFFE8ECF3),
-            surfaceVariant = Color(0xFF2A303A),
-            onSurfaceVariant = Color(0xFFC0C7D2),
-            outline = Color(0xFF8A93A0),
-            outlineVariant = Color(0xFF3C4450),
-            inverseSurface = Color(0xFFE8ECF3),
-            inverseOnSurface = Color(0xFF1B2027),
-            surfaceContainerLowest = Color(0xFF0B0E13),
-            surfaceContainerLow = Color(0xFF141923),
-            surfaceContainer = Color(0xFF1A212C),
-            surfaceContainerHigh = Color(0xFF222A36),
-            surfaceContainerHighest = Color(0xFF2A3240),
+            background = Color(0xFF181926),
+            onBackground = Color(0xFFCAD3F5),
+            surface = Color(0xFF181926),
+            onSurface = Color(0xFFCAD3F5),
+            surfaceVariant = Color(0xFF363A4F),
+            onSurfaceVariant = Color(0xFFA5ADCB),
+            outline = Color(0xFF6E738D),
+            outlineVariant = Color(0xFF494D64),
+            inverseSurface = Color(0xFFCAD3F5),
+            inverseOnSurface = Color(0xFF1E2030),
+            surfaceContainerLowest = Color(0xFF11111B),
+            surfaceContainerLow = Color(0xFF1E2030),
+            surfaceContainer = Color(0xFF24273A),
+            surfaceContainerHigh = Color(0xFF2E3146),
+            surfaceContainerHighest = Color(0xFF363A4F),
         )
     } else {
         copy(
-            background = Color(0xFFF6F8FC),
-            onBackground = Color(0xFF171C24),
-            surface = Color(0xFFFBFCFF),
-            onSurface = Color(0xFF171C24),
-            surfaceVariant = Color(0xFFE1E7F1),
-            onSurfaceVariant = Color(0xFF434C59),
-            outline = Color(0xFF6A7380),
-            outlineVariant = Color(0xFFC1C9D6),
-            inverseSurface = Color(0xFF2A313B),
-            inverseOnSurface = Color(0xFFF2F5FA),
+            background = Color(0xFFF4F6FB),
+            onBackground = Color(0xFF1E2030),
+            surface = Color(0xFFF8FAFF),
+            onSurface = Color(0xFF1E2030),
+            surfaceVariant = Color(0xFFDCE2F3),
+            onSurfaceVariant = Color(0xFF505873),
+            outline = Color(0xFF69708A),
+            outlineVariant = Color(0xFFBEC6DF),
+            inverseSurface = Color(0xFF2E3146),
+            inverseOnSurface = Color(0xFFE8ECFF),
             surfaceContainerLowest = Color(0xFFFFFFFF),
-            surfaceContainerLow = Color(0xFFF4F7FD),
-            surfaceContainer = Color(0xFFEEF3FB),
-            surfaceContainerHigh = Color(0xFFE8EEF8),
-            surfaceContainerHighest = Color(0xFFE2E9F5),
+            surfaceContainerLow = Color(0xFFF3F6FF),
+            surfaceContainer = Color(0xFFEEF2FD),
+            surfaceContainerHigh = Color(0xFFE7ECFA),
+            surfaceContainerHighest = Color(0xFFE0E6F7),
         )
     }
 }

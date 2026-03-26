@@ -2,15 +2,15 @@ package me.bmax.apatch.ui.screen
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ramcosta.composedestinations.generated.destinations.APModuleScreenDestination
@@ -40,16 +40,16 @@ enum class BottomBarDestination(
     KModule(
         KPModuleScreenDestination,
         R.string.kpm,
-        Icons.Filled.Build,
-        Icons.Outlined.Build,
+        Icons.Filled.Layers,
+        Icons.Outlined.Layers,
         true,
         false
     ),
     SuperUser(
         SuperUserScreenDestination,
         R.string.su_title,
-        Icons.Filled.Security,
-        Icons.Outlined.Security,
+        Icons.Filled.AdminPanelSettings,
+        Icons.Outlined.AdminPanelSettings,
         true,
         false
     ),
