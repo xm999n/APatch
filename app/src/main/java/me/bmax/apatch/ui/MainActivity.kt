@@ -53,6 +53,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -243,14 +247,26 @@ class MainActivity : AppCompatActivity() {
                     }.toSet()
                 }
 
-                val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = currentBackStackEntry?.destination?.route
-                val visibleBottomRoutes = remember(visibleDestinations) {
-                    visibleDestinations.map { it.direction.route }.toSet()
+                var bottomBarVisible by remember { mutableStateOf(true) }
+                val bottomBarScrollConnection = remember {
+                    object : NestedScrollConnection {
+                        override fun onPreScroll(
+                            available: Offset,
+                            source: NestedScrollSource
+                        ): Offset {
+                            if (source == NestedScrollSource.Drag) {
+                                when {
+                                    available.y < -3f -> bottomBarVisible = false
+                                    available.y > 3f -> bottomBarVisible = true
+                                }
+                            }
+                            return Offset.Zero
+                        }
+                    }
                 }
                 val showBottomBar =
                     configuration.orientation == Configuration.ORIENTATION_PORTRAIT &&
-                        currentRoute in visibleBottomRoutes
+                        bottomBarVisible
 
                 val defaultTransitions = object : NavHostAnimatedDestinationStyle() {
                     override val enterTransition:
@@ -373,6 +389,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Scaffold(
+                    modifier = Modifier.nestedScroll(bottomBarScrollConnection),
                     bottomBar = {
                         AnimatedVisibility(
                             visible = showBottomBar,
