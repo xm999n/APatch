@@ -10,15 +10,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -238,6 +243,15 @@ class MainActivity : AppCompatActivity() {
                     }.toSet()
                 }
 
+                val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = currentBackStackEntry?.destination?.route
+                val visibleBottomRoutes = remember(visibleDestinations) {
+                    visibleDestinations.map { it.direction.route }.toSet()
+                }
+                val showBottomBar =
+                    configuration.orientation == Configuration.ORIENTATION_PORTRAIT &&
+                        currentRoute in visibleBottomRoutes
+
                 val defaultTransitions = object : NavHostAnimatedDestinationStyle() {
                     override val enterTransition:
                         AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
@@ -360,7 +374,17 @@ class MainActivity : AppCompatActivity() {
 
                 Scaffold(
                     bottomBar = {
-                        if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                        AnimatedVisibility(
+                            visible = showBottomBar,
+                            enter = slideInVertically(
+                                initialOffsetY = { it },
+                                animationSpec = tween(260)
+                            ) + fadeIn(animationSpec = tween(220)),
+                            exit = slideOutVertically(
+                                targetOffsetY = { it },
+                                animationSpec = tween(220)
+                            ) + fadeOut(animationSpec = tween(180))
+                        ) {
                             BottomBar(navController, visibleDestinations)
                         }
                     },
