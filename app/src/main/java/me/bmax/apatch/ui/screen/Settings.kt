@@ -9,6 +9,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,10 +27,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Commit
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeveloperMode
@@ -47,6 +52,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -67,6 +73,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringArrayResource
@@ -362,7 +369,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             if (isDynamicColorSupport) {
                 var useSystemDynamicColor by rememberSaveable {
                     mutableStateOf(
-                        prefs.getBoolean("use_system_color_theme", true)
+                        prefs.getBoolean("use_system_color_theme", false)
                     )
                 }
                 SwitchItem(
@@ -386,7 +393,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         Text(
                             text = stringResource(colorNameToString(colorMode.toString())),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
 
@@ -401,7 +408,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     Text(
                         text = stringResource(colorNameToString(colorMode.toString())),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
             }
@@ -458,7 +465,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     ) else it.toString()
                 } ?: stringResource(id = R.string.system_default),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }, leadingContent = { Icon(Icons.Filled.Translate, null) })
 
             // log
@@ -583,6 +590,9 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 @Composable
 fun ThemeChooseDialog(showDialog: MutableState<Boolean>) {
     val prefs = APApplication.sharedPreferences
+    var selectedColorName by rememberSaveable {
+        mutableStateOf(prefs.getString("custom_color", "blue") ?: "blue")
+    }
 
     BasicAlertDialog(
         onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
@@ -592,19 +602,49 @@ fun ThemeChooseDialog(showDialog: MutableState<Boolean>) {
     ) {
         Surface(
             modifier = Modifier
-                .width(310.dp)
+                .width(332.dp)
                 .wrapContentHeight(),
             shape = RoundedCornerShape(30.dp),
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
             LazyColumn {
-                items(colorsList()) {
+                items(colorsList()) { color ->
+                    val selected = color.name == selectedColorName
                     ListItem(
-                        headlineContent = { Text(text = stringResource(it.nameId)) },
+                        headlineContent = { Text(text = stringResource(color.nameId)) },
+                        leadingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .background(color.previewColor, CircleShape)
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                        shape = CircleShape
+                                    )
+                            )
+                        },
+                        trailingContent = {
+                            if (selected) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = if (selected) {
+                                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)
+                            } else {
+                                Color.Transparent
+                            }
+                        ),
                         modifier = Modifier.clickable {
+                            selectedColorName = color.name
                             showDialog.value = false
-                            prefs.edit { putString("custom_color", it.name) }
+                            prefs.edit { putString("custom_color", color.name) }
                             refreshTheme.value = true
                         })
                 }
@@ -619,33 +659,34 @@ fun ThemeChooseDialog(showDialog: MutableState<Boolean>) {
 }
 
 private data class APColor(
-    val name: String, @param:StringRes val nameId: Int
+    val name: String,
+    @param:StringRes val nameId: Int,
+    val previewColor: Color
 )
 
 private fun colorsList(): List<APColor> {
     return listOf(
-        APColor("amber", R.string.amber_theme),
-        APColor("blue_grey", R.string.blue_grey_theme),
-        APColor("blue", R.string.blue_theme),
-        APColor("brown", R.string.brown_theme),
-        APColor("cyan", R.string.cyan_theme),
-        APColor("deep_orange", R.string.deep_orange_theme),
-        APColor("deep_purple", R.string.deep_purple_theme),
-        APColor("green", R.string.green_theme),
-        APColor("indigo", R.string.indigo_theme),
-        APColor("light_blue", R.string.light_blue_theme),
-        APColor("light_green", R.string.light_green_theme),
-        APColor("lime", R.string.lime_theme),
-        APColor("orange", R.string.orange_theme),
-        APColor("pink", R.string.pink_theme),
-        APColor("purple", R.string.purple_theme),
-        APColor("red", R.string.red_theme),
-        APColor("sakura", R.string.sakura_theme),
-        APColor("teal", R.string.teal_theme),
-        APColor("yellow", R.string.yellow_theme),
+        APColor("amber", R.string.amber_theme, Color(0xFFE3A018)),
+        APColor("blue_grey", R.string.blue_grey_theme, Color(0xFF546E7A)),
+        APColor("blue", R.string.blue_theme, Color(0xFF1565C0)),
+        APColor("brown", R.string.brown_theme, Color(0xFF6D4C41)),
+        APColor("cyan", R.string.cyan_theme, Color(0xFF00838F)),
+        APColor("deep_orange", R.string.deep_orange_theme, Color(0xFFE64A19)),
+        APColor("deep_purple", R.string.deep_purple_theme, Color(0xFF5E35B1)),
+        APColor("green", R.string.green_theme, Color(0xFF2E7D32)),
+        APColor("indigo", R.string.indigo_theme, Color(0xFF3949AB)),
+        APColor("light_blue", R.string.light_blue_theme, Color(0xFF039BE5)),
+        APColor("light_green", R.string.light_green_theme, Color(0xFF7CB342)),
+        APColor("lime", R.string.lime_theme, Color(0xFF9E9D24)),
+        APColor("orange", R.string.orange_theme, Color(0xFFFB8C00)),
+        APColor("pink", R.string.pink_theme, Color(0xFFD81B60)),
+        APColor("purple", R.string.purple_theme, Color(0xFF8E24AA)),
+        APColor("red", R.string.red_theme, Color(0xFFC62828)),
+        APColor("sakura", R.string.sakura_theme, Color(0xFFD06B95)),
+        APColor("teal", R.string.teal_theme, Color(0xFF00796B)),
+        APColor("yellow", R.string.yellow_theme, Color(0xFFFBC02D)),
     )
 }
-
 @Composable
 private fun colorNameToString(colorName: String): Int {
     return colorsList().find { it.name == colorName }?.nameId ?: R.string.blue_theme

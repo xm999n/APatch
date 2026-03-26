@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -80,7 +81,7 @@ fun APatchTheme(
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) prefs.getBoolean(
                 "use_system_color_theme",
-                true
+                false
             ) else false
         )
     }
@@ -93,7 +94,7 @@ fun APatchTheme(
         nightModeEnabled = prefs.getBoolean("night_mode_enabled", false)
         dynamicColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) prefs.getBoolean(
             "use_system_color_theme",
-            true
+            false
         ) else false
         customColorScheme = prefs.getString("custom_color", "blue")
         amoledMode = prefs.getBoolean("amoled_mode", false)
@@ -165,12 +166,17 @@ fun APatchTheme(
         }
     }
 
+    val tunedColorScheme = colorScheme.withUnifiedSurfaces(darkTheme = darkTheme)
+
     // AMOLED: override surface/background family to pure black when dark mode is active
     val finalColorScheme = if (amoledMode && darkTheme) {
-        colorScheme.copy(
+        tunedColorScheme.copy(
             background = Color.Black,
+            onBackground = Color(0xFFE5E7EC),
             surface = Color.Black,
+            onSurface = Color(0xFFE5E7EC),
             surfaceVariant = Color(0xFF1C1C1C),
+            onSurfaceVariant = Color(0xFFBCC2CC),
             surfaceContainerLowest = Color.Black,
             surfaceContainerLow = Color(0xFF0D0D0D),
             surfaceContainer = Color(0xFF141414),
@@ -178,11 +184,13 @@ fun APatchTheme(
             surfaceContainerHighest = Color(0xFF242424),
         )
     } else {
-        colorScheme
+        tunedColorScheme
     }
 
     SystemBarStyle(
-        darkMode = darkTheme
+        darkMode = darkTheme,
+        statusBarScrim = finalColorScheme.surface,
+        navigationBarScrim = finalColorScheme.surface,
     )
 
     MaterialTheme(
@@ -193,4 +201,44 @@ fun APatchTheme(
             content()
         }
     )
+}
+
+private fun ColorScheme.withUnifiedSurfaces(darkTheme: Boolean): ColorScheme {
+    return if (darkTheme) {
+        copy(
+            background = Color(0xFF11151C),
+            onBackground = Color(0xFFE8ECF3),
+            surface = Color(0xFF11151C),
+            onSurface = Color(0xFFE8ECF3),
+            surfaceVariant = Color(0xFF2A303A),
+            onSurfaceVariant = Color(0xFFC0C7D2),
+            outline = Color(0xFF8A93A0),
+            outlineVariant = Color(0xFF3C4450),
+            inverseSurface = Color(0xFFE8ECF3),
+            inverseOnSurface = Color(0xFF1B2027),
+            surfaceContainerLowest = Color(0xFF0B0E13),
+            surfaceContainerLow = Color(0xFF141923),
+            surfaceContainer = Color(0xFF1A212C),
+            surfaceContainerHigh = Color(0xFF222A36),
+            surfaceContainerHighest = Color(0xFF2A3240),
+        )
+    } else {
+        copy(
+            background = Color(0xFFF6F8FC),
+            onBackground = Color(0xFF171C24),
+            surface = Color(0xFFFBFCFF),
+            onSurface = Color(0xFF171C24),
+            surfaceVariant = Color(0xFFE1E7F1),
+            onSurfaceVariant = Color(0xFF434C59),
+            outline = Color(0xFF6A7380),
+            outlineVariant = Color(0xFFC1C9D6),
+            inverseSurface = Color(0xFF2A313B),
+            inverseOnSurface = Color(0xFFF2F5FA),
+            surfaceContainerLowest = Color(0xFFFFFFFF),
+            surfaceContainerLow = Color(0xFFF4F7FD),
+            surfaceContainer = Color(0xFFEEF3FB),
+            surfaceContainerHigh = Color(0xFFE8EEF8),
+            surfaceContainerHighest = Color(0xFFE2E9F5),
+        )
+    }
 }
