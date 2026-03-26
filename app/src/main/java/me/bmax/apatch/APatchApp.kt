@@ -1,12 +1,15 @@
 package me.bmax.apatch
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import android.view.WindowManager
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
@@ -78,6 +81,8 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         private const val LEGACY_SU_PATH = "/system/bin/su"
 
         const val SP_NAME = "config"
+        const val PREF_SECURITY_BIOMETRIC_LOCK = "security_biometric_lock"
+        const val PREF_SECURITY_BLOCK_SCREENSHOT = "security_block_screenshot"
         private const val SHOW_BACKUP_WARN = "show_backup_warning"
         lateinit var sharedPreferences: SharedPreferences
 
@@ -246,6 +251,25 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             }
     }
 
+    private val trackedActivities = mutableSetOf<Activity>()
+
+    private val securityPreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == PREF_SECURITY_BLOCK_SCREENSHOT) {
+            trackedActivities.forEach { activity ->
+                applyScreenshotProtection(activity)
+            }
+        }
+    }
+
+    private fun applyScreenshotProtection(activity: Activity) {
+        val blockScreenshot = sharedPreferences.getBoolean(PREF_SECURITY_BLOCK_SCREENSHOT, false)
+        if (blockScreenshot) {
+            activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         apApp = this
@@ -275,6 +299,32 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         sharedPreferences = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
         APatchKeyHelper.setSharedPreferences(sharedPreferences)
         superKey = APatchKeyHelper.readSPSuperKey()
+
+        sharedPreferences.registerOnSharedPreferenceChangeListener(securityPreferenceListener)
+        registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                trackedActivities.add(activity)
+                applyScreenshotProtection(activity)
+            }
+
+            override fun onActivityStarted(activity: Activity) {
+                applyScreenshotProtection(activity)
+            }
+
+            override fun onActivityResumed(activity: Activity) {
+                applyScreenshotProtection(activity)
+            }
+
+            override fun onActivityPaused(activity: Activity) = Unit
+
+            override fun onActivityStopped(activity: Activity) = Unit
+
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+            override fun onActivityDestroyed(activity: Activity) {
+                trackedActivities.remove(activity)
+            }
+        })
 
         okhttpClient =
             OkHttpClient.Builder().cache(Cache(File(cacheDir, "okhttp"), 10 * 1024 * 1024))

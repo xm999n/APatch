@@ -7,6 +7,8 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
@@ -52,6 +54,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
@@ -79,7 +82,59 @@ import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private var biometricVerifiedInProcess = false
+    }
+
     private var isLoading = true
+
+    private fun canUseBiometricLock(): Boolean {
+        val authenticators = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        } else {
+            BiometricManager.Authenticators.BIOMETRIC_STRONG
+        }
+
+        return BiometricManager.from(this).canAuthenticate(authenticators) ==
+            BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    private fun showBiometricPrompt(
+        onSuccess: () -> Unit,
+        onCancel: () -> Unit
+    ) {
+        val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(getString(R.string.settings_security_biometric_lock))
+            .setSubtitle(getString(R.string.settings_security_biometric_prompt_subtitle))
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            promptInfoBuilder.setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
+        } else {
+            promptInfoBuilder.setNegativeButtonText(getString(android.R.string.cancel))
+        }
+
+        val biometricPrompt = BiometricPrompt(
+            this,
+            ContextCompat.getMainExecutor(this),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    onSuccess()
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    onCancel()
+                }
+            }
+        )
+
+        biometricPrompt.authenticate(promptInfoBuilder.build())
+    }
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +150,41 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             APatchTheme {
+                val biometricLockEnabled = remember {
+                    APApplication.sharedPreferences.getBoolean(
+                        APApplication.PREF_SECURITY_BIOMETRIC_LOCK,
+                        false
+                    )
+                }
+                var biometricUnlocked by remember {
+                    mutableStateOf(!biometricLockEnabled || biometricVerifiedInProcess)
+                }
+                var biometricPromptLaunched by remember { mutableStateOf(false) }
+
+                LaunchedEffect(biometricUnlocked, biometricPromptLaunched) {
+                    if (!biometricUnlocked && !biometricPromptLaunched) {
+                        if (!canUseBiometricLock()) {
+                            biometricUnlocked = true
+                            return@LaunchedEffect
+                        }
+
+                        biometricPromptLaunched = true
+                        showBiometricPrompt(
+                            onSuccess = {
+                                biometricVerifiedInProcess = true
+                                biometricUnlocked = true
+                            },
+                            onCancel = {
+                                finish()
+                            }
+                        )
+                    }
+                }
+
+                if (!biometricUnlocked) {
+                    return@APatchTheme
+                }
+
                 val navController = rememberNavController()
                 val snackBarHostState = remember { SnackbarHostState() }
                 val configuration = LocalConfiguration.current

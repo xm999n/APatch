@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.biometric.BiometricManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -37,15 +38,20 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Commit
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeveloperMode
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FilePresent
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.RemoveFromQueue
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -190,8 +196,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
     var coreExpanded by rememberSaveable { mutableStateOf(true) }
     var appearanceExpanded by rememberSaveable { mutableStateOf(true) }
-    var languageExpanded by rememberSaveable { mutableStateOf(false) }
-    var logsExpanded by rememberSaveable { mutableStateOf(false) }
+    var securityExpanded by rememberSaveable { mutableStateOf(false) }
 
     var checkUpdate by rememberSaveable { mutableStateOf(prefs.getBoolean("check_update", true)) }
     var nightFollowSystem by rememberSaveable { mutableStateOf(prefs.getBoolean("night_mode_follow_sys", true)) }
@@ -202,6 +207,12 @@ fun SettingScreen(navigator: DestinationsNavigator) {
     }
     var amoledMode by rememberSaveable { mutableStateOf(prefs.getBoolean("amoled_mode", false)) }
     var enableWebDebugging by rememberSaveable { mutableStateOf(prefs.getBoolean("enable_web_debugging", false)) }
+    var biometricLockEnabled by rememberSaveable {
+        mutableStateOf(prefs.getBoolean(APApplication.PREF_SECURITY_BIOMETRIC_LOCK, false))
+    }
+    var screenshotBlockEnabled by rememberSaveable {
+        mutableStateOf(prefs.getBoolean(APApplication.PREF_SECURITY_BLOCK_SCREENSHOT, false))
+    }
 
     Scaffold(
         topBar = {
@@ -220,7 +231,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             ExpandableSettingsSection(
-                title = stringResource(id = R.string.super_key),
+                title = stringResource(id = R.string.settings_advanced),
                 icon = Icons.Filled.Key,
                 expanded = coreExpanded,
                 onExpandedChange = { coreExpanded = it }
@@ -289,7 +300,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         }
                     )
                 }
-
                 if (aPatchReady) {
                     SwitchItem(
                         icon = Icons.Filled.DeveloperMode,
@@ -302,6 +312,30 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         }
                         enableWebDebugging = it
                     }
+                }
+
+                ListItem(
+                    leadingContent = { Icon(Icons.Filled.RemoveFromQueue, null) },
+                    headlineContent = { Text(stringResource(R.string.umount_title)) },
+                    supportingContent = { Text(stringResource(R.string.umount_summary)) },
+                    modifier = Modifier.clickable {
+                        navigator.navigate(CustomUmountScreenDestination)
+                    }
+                )
+
+                if (kPatchReady) {
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Commit,
+                                stringResource(id = R.string.setting_reset_su_path)
+                            )
+                        },
+                        headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
+                        modifier = Modifier.clickable {
+                            showResetSuPathDialog.value = true
+                        }
+                    )
                 }
             }
 
@@ -388,41 +422,52 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     refreshTheme.value = true
                 }
             }
-
             ExpandableSettingsSection(
-                title = stringResource(id = R.string.settings_app_language),
-                icon = Icons.Filled.Translate,
-                expanded = languageExpanded,
-                onExpandedChange = { languageExpanded = it }
+                title = stringResource(id = R.string.settings_security),
+                icon = Icons.Filled.Security,
+                expanded = securityExpanded,
+                onExpandedChange = { securityExpanded = it }
             ) {
-                ListItem(
-                    leadingContent = { Icon(Icons.Filled.RemoveFromQueue, null) },
-                    headlineContent = { Text(stringResource(R.string.umount_title)) },
-                    supportingContent = { Text(stringResource(R.string.umount_summary)) },
-                    modifier = Modifier.clickable {
-                        navigator.navigate(CustomUmountScreenDestination)
+                SwitchItem(
+                    icon = Icons.Filled.Fingerprint,
+                    title = stringResource(id = R.string.settings_security_biometric_lock),
+                    summary = stringResource(id = R.string.settings_security_biometric_lock_summary),
+                    checked = biometricLockEnabled
+                ) { enabled ->
+                    val authenticators = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                    } else {
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG
                     }
-                )
-
-                if (kPatchReady) {
-                    ListItem(
-                        leadingContent = {
-                            Icon(
-                                Icons.Filled.Commit,
-                                stringResource(id = R.string.setting_reset_su_path)
-                            )
-                        },
-                        headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
-                        modifier = Modifier.clickable {
-                            showResetSuPathDialog.value = true
-                        }
-                    )
+                    val canAuthenticate = BiometricManager.from(context).canAuthenticate(authenticators)
+                    if (enabled && canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
+                        Toast.makeText(context, R.string.settings_security_biometric_unavailable, Toast.LENGTH_SHORT).show()
+                        return@SwitchItem
+                    }
+                    prefs.edit { putBoolean(APApplication.PREF_SECURITY_BIOMETRIC_LOCK, enabled) }
+                    biometricLockEnabled = enabled
                 }
 
+                SwitchItem(
+                    icon = Icons.Filled.VisibilityOff,
+                    title = stringResource(id = R.string.settings_security_block_screenshot),
+                    summary = stringResource(id = R.string.settings_security_block_screenshot_summary),
+                    checked = screenshotBlockEnabled
+                ) { enabled ->
+                    prefs.edit { putBoolean(APApplication.PREF_SECURITY_BLOCK_SCREENSHOT, enabled) }
+                    screenshotBlockEnabled = enabled
+                }
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                tonalElevation = 1.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerLow
+            ) {
                 ListItem(
-                    headlineContent = {
-                        Text(text = stringResource(id = R.string.settings_app_language))
-                    },
+                    headlineContent = { Text(text = stringResource(id = R.string.settings_app_language)) },
                     modifier = Modifier.clickable {
                         showLanguageDialog.value = true
                     },
@@ -439,11 +484,11 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 )
             }
 
-            ExpandableSettingsSection(
-                title = stringResource(id = R.string.send_log),
-                icon = Icons.Filled.BugReport,
-                expanded = logsExpanded,
-                onExpandedChange = { logsExpanded = it }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                tonalElevation = 1.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerLow
             ) {
                 ListItem(
                     leadingContent = {
@@ -580,10 +625,9 @@ private fun ExpandableSettingsSection(
                 leadingContent = { Icon(icon, null) },
                 headlineContent = { Text(title, style = MaterialTheme.typography.titleMedium) },
                 trailingContent = {
-                    Text(
-                        text = if (expanded) "-" else "+",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null
                     )
                 },
                 modifier = Modifier.clickable { onExpandedChange(!expanded) },

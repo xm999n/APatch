@@ -521,23 +521,7 @@ private fun ModuleItem(
                             textDecoration = decoration,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
-                        Text(
-                            text = module.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            textDecoration = decoration,
-                            color = MaterialTheme.colorScheme.outline,
-                            maxLines = if (expanded) 5 else 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
-
-                    Text(
-                        text = if (expanded) "-" else "+",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
 
                     Switch(
                         enabled = !module.update,
@@ -548,6 +532,20 @@ private fun ModuleItem(
 
                 AnimatedVisibility(visible = expanded) {
                     Column {
+                        Text(
+                            modifier = Modifier
+                                .alpha(alpha = alpha)
+                                .padding(horizontal = 16.dp),
+                            text = module.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            textDecoration = decoration,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Text(
                             modifier = Modifier
                                 .alpha(alpha = alpha)

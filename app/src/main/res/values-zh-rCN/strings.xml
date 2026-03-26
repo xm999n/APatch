@@ -27,6 +27,14 @@
     <string name="home">主页</string>
     <string name="patch_set_superkey">设置超级密钥</string>
     <string name="settings">设置</string>
+    <string name="settings_advanced">高级</string>
+    <string name="settings_security">安全</string>
+    <string name="settings_security_biometric_lock">安全锁定</string>
+    <string name="settings_security_biometric_lock_summary">打开应用时先进行系统指纹验证</string>
+    <string name="settings_security_biometric_prompt_subtitle">验证身份后继续使用</string>
+    <string name="settings_security_biometric_unavailable">当前设备不可用生物识别验证</string>
+    <string name="settings_security_block_screenshot">阻止截屏</string>
+    <string name="settings_security_block_screenshot_summary">在应用所有界面阻止截图和录屏</string>
     <string name="home_working">工作中 😋</string>
     <string name="home_patch_next_step">下一步</string>
     <string name="home_not_installed">未安装</string>
