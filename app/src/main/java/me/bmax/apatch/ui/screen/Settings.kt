@@ -194,8 +194,8 @@ fun SettingScreen(navigator: DestinationsNavigator) {
         }
     }
 
-    var coreExpanded by rememberSaveable { mutableStateOf(false) }
-    var appearanceExpanded by rememberSaveable { mutableStateOf(false) }
+    var coreExpanded by remember { mutableStateOf(false) }
+    var appearanceExpanded by remember { mutableStateOf(false) }
     var securityExpanded by rememberSaveable { mutableStateOf(false) }
 
     var checkUpdate by rememberSaveable { mutableStateOf(prefs.getBoolean("check_update", true)) }
