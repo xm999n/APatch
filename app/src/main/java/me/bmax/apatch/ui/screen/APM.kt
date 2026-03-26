@@ -7,6 +7,7 @@ import android.net.Uri
 import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -478,6 +479,8 @@ private fun ModuleItem(
     val decoration = if (!module.remove) TextDecoration.None else TextDecoration.LineThrough
     val moduleAuthor = stringResource(id = R.string.apm_author)
     val viewModel = viewModel<APModuleViewModel>()
+    var expanded by rememberSaveable(module.id) { mutableStateOf(false) }
+
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
@@ -488,7 +491,7 @@ private fun ModuleItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onClick(module) },
+                .clickable { expanded = !expanded },
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -518,7 +521,23 @@ private fun ModuleItem(
                             textDecoration = decoration,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+
+                        Text(
+                            text = module.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            textDecoration = decoration,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = if (expanded) 5 else 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
+
+                    Text(
+                        text = if (expanded) "-" else "+",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
 
                     Switch(
                         enabled = !module.update,
@@ -527,69 +546,73 @@ private fun ModuleItem(
                     )
                 }
 
-                Text(
-                    modifier = Modifier
-                        .alpha(alpha = alpha)
-                        .padding(horizontal = 16.dp),
-                    text = module.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    textDecoration = decoration,
-                    color = MaterialTheme.colorScheme.outline
-                )
+                AnimatedVisibility(visible = expanded) {
+                    Column {
+                        Text(
+                            modifier = Modifier
+                                .alpha(alpha = alpha)
+                                .padding(horizontal = 16.dp),
+                            text = "ID: ${module.id} | VersionCode: ${module.versionCode}",
+                            style = MaterialTheme.typography.labelSmall,
+                            textDecoration = decoration,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                HorizontalDivider(
-                    thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
 
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (updateUrl.isNotEmpty()) {
-                        ModuleUpdateButton(onClick = { onUpdate(module) })
-
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-
-                    if (module.hasWebUi) {
-                        FilledTonalButton(
-                            onClick = { onClick(module) },
-                            enabled = true,
-                            contentPadding = PaddingValues(12.dp)
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                painter = painterResource(id = R.drawable.webui),
-                                contentDescription = stringResource(id = R.string.apm_webui_open)
-                            )
+                            if (updateUrl.isNotEmpty()) {
+                                ModuleUpdateButton(onClick = { onUpdate(module) })
+
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
+
+                            if (module.hasWebUi) {
+                                FilledTonalButton(
+                                    onClick = { onClick(module) },
+                                    enabled = true,
+                                    contentPadding = PaddingValues(12.dp)
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(20.dp),
+                                        painter = painterResource(id = R.drawable.webui),
+                                        contentDescription = stringResource(id = R.string.apm_webui_open)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            if (module.hasActionScript) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
+                                        viewModel.markNeedRefresh()
+                                    }, enabled = true, contentPadding = PaddingValues(12.dp)
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(20.dp),
+                                        painter = painterResource(id = R.drawable.play_circle),
+                                        contentDescription = stringResource(id = R.string.apm_action)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
+                            ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
                         }
-
-                        Spacer(modifier = Modifier.width(12.dp))
                     }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    if (module.hasActionScript) {
-                        FilledTonalButton(
-                            onClick = {
-                                navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
-                                viewModel.markNeedRefresh()
-                            }, enabled = true, contentPadding = PaddingValues(12.dp)
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                painter = painterResource(id = R.drawable.play_circle),
-                                contentDescription = stringResource(id = R.string.apm_action)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                    ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
                 }
             }
 

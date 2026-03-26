@@ -20,6 +20,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -391,13 +393,13 @@ private fun BottomBar(navController: NavHostController, visibleDestinations: Set
         ) {
             Surface(
                 modifier = Modifier.wrapContentWidth(),
-                shape = MaterialTheme.shapes.large,
+                shape = RoundedCornerShape(36.dp),
                 tonalElevation = 3.dp,
                 shadowElevation = 8.dp
             ) {
-                val itemSize = 56.dp
-                val itemSpacing = 4.dp
-                val containerPadding = 7.dp
+                val itemSize = 52.dp
+                val itemSpacing = 6.dp
+                val containerPadding = 8.dp
                 val navBarWidth = (itemSize * orderedDestinations.size) +
                     (itemSpacing * (orderedDestinations.size - 1).coerceAtLeast(0)) +
                     (containerPadding * 2)
@@ -405,7 +407,7 @@ private fun BottomBar(navController: NavHostController, visibleDestinations: Set
                 Box(
                     modifier = Modifier
                         .width(navBarWidth)
-                        .height(72.dp)
+                        .height(68.dp)
                 ) {
                     var totalWidth by remember { mutableStateOf(0) }
 
@@ -426,7 +428,7 @@ private fun BottomBar(navController: NavHostController, visibleDestinations: Set
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .padding(vertical = 8.dp)
+                                    .padding(vertical = 6.dp)
                                     .offset {
                                         IntOffset(
                                             x = indicatorOffset.toInt(),
@@ -441,7 +443,7 @@ private fun BottomBar(navController: NavHostController, visibleDestinations: Set
                                         .size(itemSize)
                                         .background(
                                             color = MaterialTheme.colorScheme.secondaryContainer,
-                                            shape = MaterialTheme.shapes.large
+                                            shape = CircleShape
                                         )
                                 )
                             }
@@ -457,7 +459,7 @@ private fun BottomBar(navController: NavHostController, visibleDestinations: Set
                                 Box(
                                     modifier = Modifier
                                         .size(itemSize)
-                                        .clip(MaterialTheme.shapes.large)
+                                        .clip(CircleShape)
                                         .clickable {
                                             val isCurrentDestination = destination.direction.route == currentRoute
                                             if (isCurrentDestination) {

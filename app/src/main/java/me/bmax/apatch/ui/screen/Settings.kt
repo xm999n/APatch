@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringArrayResource
@@ -119,7 +121,6 @@ import me.bmax.apatch.util.ui.NavigationBarsSpacer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
 @Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,21 +129,13 @@ fun SettingScreen(navigator: DestinationsNavigator) {
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
         (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
-    var isGlobalNamespaceEnabled by rememberSaveable {
-        mutableStateOf(false)
-    }
-    var isLiteModeEnabled by rememberSaveable {
-        mutableStateOf(false)
-    }
-    var forceUsingOverlayFS by rememberSaveable {
-        mutableStateOf(false)
-    }
-    var bSkipStoreSuperKey by rememberSaveable {
-        mutableStateOf(APatchKeyHelper.shouldSkipStoreSuperKey())
-    }
-    val isOverlayFSAvailable by rememberSaveable {
-        mutableStateOf(overlayFsAvailable())
-    }
+
+    var isGlobalNamespaceEnabled by rememberSaveable { mutableStateOf(false) }
+    var isLiteModeEnabled by rememberSaveable { mutableStateOf(false) }
+    var forceUsingOverlayFS by rememberSaveable { mutableStateOf(false) }
+    var bSkipStoreSuperKey by rememberSaveable { mutableStateOf(APatchKeyHelper.shouldSkipStoreSuperKey()) }
+    val isOverlayFSAvailable by rememberSaveable { mutableStateOf(overlayFsAvailable()) }
+
     if (kPatchReady && aPatchReady) {
         isGlobalNamespaceEnabled = isGlobalNamespaceEnabled()
         isLiteModeEnabled = isLiteModeEnabled()
@@ -150,6 +143,65 @@ fun SettingScreen(navigator: DestinationsNavigator) {
     }
 
     val snackBarHost = LocalSnackbarHost.current
+    val loadingDialog = rememberLoadingDialog()
+    val clearKeyDialog = rememberConfirmDialog(
+        onConfirm = {
+            APatchKeyHelper.clearConfigKey()
+            APApplication.superKey = ""
+        }
+    )
+
+    val showLanguageDialog = rememberSaveable { mutableStateOf(false) }
+    LanguageDialog(showLanguageDialog)
+
+    val showResetSuPathDialog = remember { mutableStateOf(false) }
+    if (showResetSuPathDialog.value) {
+        ResetSUPathDialog(showResetSuPathDialog)
+    }
+
+    val showThemeChooseDialog = remember { mutableStateOf(false) }
+    if (showThemeChooseDialog.value) {
+        ThemeChooseDialog(showThemeChooseDialog)
+    }
+
+    var showLogBottomSheet by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val prefs = APApplication.sharedPreferences
+    val logSavedMessage = stringResource(R.string.log_saved)
+
+    val exportBugreportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/gzip")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                loadingDialog.show()
+                uri.outputStream().use { output ->
+                    getBugreportFile(context).inputStream().use {
+                        it.copyTo(output)
+                    }
+                }
+                loadingDialog.hide()
+                snackBarHost.showSnackbar(message = logSavedMessage)
+            }
+        }
+    }
+
+    var coreExpanded by rememberSaveable { mutableStateOf(true) }
+    var appearanceExpanded by rememberSaveable { mutableStateOf(true) }
+    var languageExpanded by rememberSaveable { mutableStateOf(false) }
+    var logsExpanded by rememberSaveable { mutableStateOf(false) }
+
+    var checkUpdate by rememberSaveable { mutableStateOf(prefs.getBoolean("check_update", true)) }
+    var nightFollowSystem by rememberSaveable { mutableStateOf(prefs.getBoolean("night_mode_follow_sys", true)) }
+    var nightThemeEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("night_mode_enabled", false)) }
+    val isDynamicColorSupport = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    var useSystemDynamicColor by rememberSaveable {
+        mutableStateOf(if (isDynamicColorSupport) prefs.getBoolean("use_system_color_theme", false) else false)
+    }
+    var amoledMode by rememberSaveable { mutableStateOf(prefs.getBoolean("amoled_mode", false)) }
+    var enableWebDebugging by rememberSaveable { mutableStateOf(prefs.getBoolean("enable_web_debugging", false)) }
 
     Scaffold(
         topBar = {
@@ -159,430 +211,390 @@ fun SettingScreen(navigator: DestinationsNavigator) {
         },
         snackbarHost = { SnackbarHost(snackBarHost) }
     ) { paddingValues ->
-
-        val loadingDialog = rememberLoadingDialog()
-        val clearKeyDialog = rememberConfirmDialog(
-            onConfirm = {
-                APatchKeyHelper.clearConfigKey()
-                APApplication.superKey = ""
-            }
-        )
-
-        val showLanguageDialog = rememberSaveable { mutableStateOf(false) }
-        LanguageDialog(showLanguageDialog)
-
-        val showResetSuPathDialog = remember { mutableStateOf(false) }
-        if (showResetSuPathDialog.value) {
-            ResetSUPathDialog(showResetSuPathDialog)
-        }
-
-        val showThemeChooseDialog = remember { mutableStateOf(false) }
-        if (showThemeChooseDialog.value) {
-            ThemeChooseDialog(showThemeChooseDialog)
-        }
-
-        var showLogBottomSheet by remember { mutableStateOf(false) }
-
-        val scope = rememberCoroutineScope()
-        val context = LocalContext.current
-        val logSavedMessage = stringResource(R.string.log_saved)
-        val exportBugreportLauncher = rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument("application/gzip")
-        ) { uri: Uri? ->
-            if (uri != null) {
-                scope.launch(Dispatchers.IO) {
-                    loadingDialog.show()
-                    uri.outputStream().use { output ->
-                        getBugreportFile(context).inputStream().use {
-                            it.copyTo(output)
-                        }
-                    }
-                    loadingDialog.hide()
-                    snackBarHost.showSnackbar(message = logSavedMessage)
-                }
-            }
-        }
-
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
-            val context = LocalContext.current
-            val scope = rememberCoroutineScope()
-            val prefs = APApplication.sharedPreferences
-
-            // clear key
-            if (kPatchReady) {
-                val clearKeyDialogTitle = stringResource(id = R.string.clear_super_key)
-                val clearKeyDialogContent =
-                    stringResource(id = R.string.settings_clear_super_key_dialog)
-                ListItem(
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Key, stringResource(id = R.string.super_key)
-                        )
-                    },
-                    headlineContent = { Text(stringResource(id = R.string.clear_super_key)) },
-                    modifier = Modifier.clickable {
-                        clearKeyDialog.showConfirm(
-                            title = clearKeyDialogTitle,
-                            content = clearKeyDialogContent,
-                            markdown = false,
-                        )
-
-                    })
-            }
-
-            // store key local?
-            SwitchItem(
+            ExpandableSettingsSection(
+                title = stringResource(id = R.string.super_key),
                 icon = Icons.Filled.Key,
-                title = stringResource(id = R.string.settings_donot_store_superkey),
-                summary = stringResource(id = R.string.settings_donot_store_superkey_summary),
-                checked = bSkipStoreSuperKey,
-                onCheckedChange = {
-                    bSkipStoreSuperKey = it
-                    APatchKeyHelper.setShouldSkipStoreSuperKey(bSkipStoreSuperKey)
-                })
-
-            // Global mount
-            if (kPatchReady && aPatchReady) {
-                SwitchItem(
-                    icon = Icons.Filled.Engineering,
-                    title = stringResource(id = R.string.settings_global_namespace_mode),
-                    summary = stringResource(id = R.string.settings_global_namespace_mode_summary),
-                    checked = isGlobalNamespaceEnabled,
-                    onCheckedChange = {
-                        setGlobalNamespaceEnabled(
-                            if (isGlobalNamespaceEnabled) {
-                                "0"
-                            } else {
-                                "1"
-                            }
-                        )
-                        isGlobalNamespaceEnabled = it
-                    })
-            }
-
-            // Lite Mode
-            if (kPatchReady && aPatchReady) {
-                SwitchItem(
-                    icon = Icons.Filled.RemoveFromQueue,
-                    title = stringResource(id = R.string.settings_lite_mode),
-                    summary = stringResource(id = R.string.settings_lite_mode_mode_summary),
-                    checked = isLiteModeEnabled,
-                    onCheckedChange = {
-                        setLiteMode(it)
-                        isLiteModeEnabled = it
-                    })
-            }
-
-            // Force OverlayFS
-            if (kPatchReady && aPatchReady && isOverlayFSAvailable) {
-                SwitchItem(
-                    icon = Icons.Filled.FilePresent,
-                    title = stringResource(id = R.string.settings_force_overlayfs_mode),
-                    summary = stringResource(id = R.string.settings_force_overlayfs_mode_summary),
-                    checked = forceUsingOverlayFS,
-                    onCheckedChange = {
-                        setForceUsingOverlayFS(it)
-                        forceUsingOverlayFS = it
-                    })
-            }
-
-            // WebView Debug
-            if (aPatchReady) {
-                var enableWebDebugging by rememberSaveable {
-                    mutableStateOf(
-                        prefs.getBoolean("enable_web_debugging", false)
-                    )
+                expanded = coreExpanded,
+                onExpandedChange = { coreExpanded = it }
+            ) {
+                if (kPatchReady) {
+                    val clearKeyDialogTitle = stringResource(id = R.string.clear_super_key)
+                    val clearKeyDialogContent = stringResource(id = R.string.settings_clear_super_key_dialog)
+                    ListItem(
+                        leadingContent = {
+                            Icon(Icons.Filled.Key, stringResource(id = R.string.super_key))
+                        },
+                        headlineContent = { Text(stringResource(id = R.string.clear_super_key)) },
+                        modifier = Modifier.clickable {
+                            clearKeyDialog.showConfirm(
+                                title = clearKeyDialogTitle,
+                                content = clearKeyDialogContent,
+                                markdown = false,
+                            )
+                        })
                 }
+
                 SwitchItem(
-                    icon = Icons.Filled.DeveloperMode,
-                    title = stringResource(id = R.string.enable_web_debugging),
-                    summary = stringResource(id = R.string.enable_web_debugging_summary),
-                    checked = enableWebDebugging
-                ) {
-                    APApplication.sharedPreferences.edit {
-                        putBoolean("enable_web_debugging", it)
+                    icon = Icons.Filled.Key,
+                    title = stringResource(id = R.string.settings_donot_store_superkey),
+                    summary = stringResource(id = R.string.settings_donot_store_superkey_summary),
+                    checked = bSkipStoreSuperKey,
+                    onCheckedChange = {
+                        bSkipStoreSuperKey = it
+                        APatchKeyHelper.setShouldSkipStoreSuperKey(bSkipStoreSuperKey)
                     }
-                    enableWebDebugging = it
-                }
-            }
-
-            // Check Update
-            var checkUpdate by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("check_update", true)
                 )
-            }
 
-            SwitchItem(
-                icon = Icons.Filled.Update,
-                title = stringResource(id = R.string.settings_check_update),
-                summary = stringResource(id = R.string.settings_check_update_summary),
-                checked = checkUpdate
-            ) {
-                prefs.edit { putBoolean("check_update", it) }
-                checkUpdate = it
-            }
+                if (kPatchReady && aPatchReady) {
+                    SwitchItem(
+                        icon = Icons.Filled.Engineering,
+                        title = stringResource(id = R.string.settings_global_namespace_mode),
+                        summary = stringResource(id = R.string.settings_global_namespace_mode_summary),
+                        checked = isGlobalNamespaceEnabled,
+                        onCheckedChange = {
+                            setGlobalNamespaceEnabled(if (isGlobalNamespaceEnabled) "0" else "1")
+                            isGlobalNamespaceEnabled = it
+                        }
+                    )
 
-            // Night Mode Follow System
-            var nightFollowSystem by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("night_mode_follow_sys", true)
-                )
-            }
-            SwitchItem(
-                icon = Icons.Filled.InvertColors,
-                title = stringResource(id = R.string.settings_night_mode_follow_sys),
-                summary = stringResource(id = R.string.settings_night_mode_follow_sys_summary),
-                checked = nightFollowSystem
-            ) {
-                prefs.edit { putBoolean("night_mode_follow_sys", it) }
-                nightFollowSystem = it
-                refreshTheme.value = true
-            }
-
-            // Custom Night Theme Switch
-            if (!nightFollowSystem) {
-                var nightThemeEnabled by rememberSaveable {
-                    mutableStateOf(
-                        prefs.getBoolean("night_mode_enabled", false)
+                    SwitchItem(
+                        icon = Icons.Filled.RemoveFromQueue,
+                        title = stringResource(id = R.string.settings_lite_mode),
+                        summary = stringResource(id = R.string.settings_lite_mode_mode_summary),
+                        checked = isLiteModeEnabled,
+                        onCheckedChange = {
+                            setLiteMode(it)
+                            isLiteModeEnabled = it
+                        }
                     )
                 }
+
+                if (kPatchReady && aPatchReady && isOverlayFSAvailable) {
+                    SwitchItem(
+                        icon = Icons.Filled.FilePresent,
+                        title = stringResource(id = R.string.settings_force_overlayfs_mode),
+                        summary = stringResource(id = R.string.settings_force_overlayfs_mode_summary),
+                        checked = forceUsingOverlayFS,
+                        onCheckedChange = {
+                            setForceUsingOverlayFS(it)
+                            forceUsingOverlayFS = it
+                        }
+                    )
+                }
+
+                if (aPatchReady) {
+                    SwitchItem(
+                        icon = Icons.Filled.DeveloperMode,
+                        title = stringResource(id = R.string.enable_web_debugging),
+                        summary = stringResource(id = R.string.enable_web_debugging_summary),
+                        checked = enableWebDebugging
+                    ) {
+                        APApplication.sharedPreferences.edit {
+                            putBoolean("enable_web_debugging", it)
+                        }
+                        enableWebDebugging = it
+                    }
+                }
+            }
+
+            ExpandableSettingsSection(
+                title = stringResource(id = R.string.settings_custom_color_theme),
+                icon = Icons.Filled.ColorLens,
+                expanded = appearanceExpanded,
+                onExpandedChange = { appearanceExpanded = it }
+            ) {
                 SwitchItem(
-                    icon = Icons.Filled.DarkMode,
-                    title = stringResource(id = R.string.settings_night_theme_enabled),
-                    checked = nightThemeEnabled
+                    icon = Icons.Filled.Update,
+                    title = stringResource(id = R.string.settings_check_update),
+                    summary = stringResource(id = R.string.settings_check_update_summary),
+                    checked = checkUpdate
                 ) {
-                    prefs.edit { putBoolean("night_mode_enabled", it) }
-                    nightThemeEnabled = it
+                    prefs.edit { putBoolean("check_update", it) }
+                    checkUpdate = it
+                }
+
+                SwitchItem(
+                    icon = Icons.Filled.InvertColors,
+                    title = stringResource(id = R.string.settings_night_mode_follow_sys),
+                    summary = stringResource(id = R.string.settings_night_mode_follow_sys_summary),
+                    checked = nightFollowSystem
+                ) {
+                    prefs.edit { putBoolean("night_mode_follow_sys", it) }
+                    nightFollowSystem = it
+                    refreshTheme.value = true
+                }
+
+                if (!nightFollowSystem) {
+                    SwitchItem(
+                        icon = Icons.Filled.DarkMode,
+                        title = stringResource(id = R.string.settings_night_theme_enabled),
+                        checked = nightThemeEnabled
+                    ) {
+                        prefs.edit { putBoolean("night_mode_enabled", it) }
+                        nightThemeEnabled = it
+                        refreshTheme.value = true
+                    }
+                }
+
+                if (isDynamicColorSupport) {
+                    SwitchItem(
+                        icon = Icons.Filled.ColorLens,
+                        title = stringResource(id = R.string.settings_use_system_color_theme),
+                        summary = stringResource(id = R.string.settings_use_system_color_theme_summary),
+                        checked = useSystemDynamicColor
+                    ) {
+                        prefs.edit { putBoolean("use_system_color_theme", it) }
+                        useSystemDynamicColor = it
+                        refreshTheme.value = true
+                    }
+                }
+
+                if (!isDynamicColorSupport || !useSystemDynamicColor) {
+                    ListItem(
+                        headlineContent = {
+                            Text(text = stringResource(id = R.string.settings_custom_color_theme))
+                        },
+                        modifier = Modifier.clickable {
+                            showThemeChooseDialog.value = true
+                        },
+                        supportingContent = {
+                            val colorMode = prefs.getString("custom_color", "blue")
+                            Text(
+                                text = stringResource(colorNameToString(colorMode.toString())),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = { Icon(Icons.Filled.FormatColorFill, null) }
+                    )
+                }
+
+                SwitchItem(
+                    icon = Icons.Filled.InvertColors,
+                    title = stringResource(id = R.string.settings_amoled_mode),
+                    summary = stringResource(id = R.string.settings_amoled_mode_summary),
+                    checked = amoledMode
+                ) {
+                    prefs.edit { putBoolean("amoled_mode", it) }
+                    amoledMode = it
                     refreshTheme.value = true
                 }
             }
 
-            // System dynamic color theme
-            val isDynamicColorSupport = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-            if (isDynamicColorSupport) {
-                var useSystemDynamicColor by rememberSaveable {
-                    mutableStateOf(
-                        prefs.getBoolean("use_system_color_theme", false)
+            ExpandableSettingsSection(
+                title = stringResource(id = R.string.settings_app_language),
+                icon = Icons.Filled.Translate,
+                expanded = languageExpanded,
+                onExpandedChange = { languageExpanded = it }
+            ) {
+                ListItem(
+                    leadingContent = { Icon(Icons.Filled.RemoveFromQueue, null) },
+                    headlineContent = { Text(stringResource(R.string.umount_title)) },
+                    supportingContent = { Text(stringResource(R.string.umount_summary)) },
+                    modifier = Modifier.clickable {
+                        navigator.navigate(CustomUmountScreenDestination)
+                    }
+                )
+
+                if (kPatchReady) {
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Commit,
+                                stringResource(id = R.string.setting_reset_su_path)
+                            )
+                        },
+                        headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
+                        modifier = Modifier.clickable {
+                            showResetSuPathDialog.value = true
+                        }
                     )
                 }
-                SwitchItem(
-                    icon = Icons.Filled.ColorLens,
-                    title = stringResource(id = R.string.settings_use_system_color_theme),
-                    summary = stringResource(id = R.string.settings_use_system_color_theme_summary),
-                    checked = useSystemDynamicColor
-                ) {
-                    prefs.edit { putBoolean("use_system_color_theme", it) }
-                    useSystemDynamicColor = it
-                    refreshTheme.value = true
-                }
 
-                if (!useSystemDynamicColor) {
-                    ListItem(headlineContent = {
-                        Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                    }, modifier = Modifier.clickable {
-                        showThemeChooseDialog.value = true
-                    }, supportingContent = {
-                        val colorMode = prefs.getString("custom_color", "blue")
+                ListItem(
+                    headlineContent = {
+                        Text(text = stringResource(id = R.string.settings_app_language))
+                    },
+                    modifier = Modifier.clickable {
+                        showLanguageDialog.value = true
+                    },
+                    supportingContent = {
                         Text(
-                            text = stringResource(colorNameToString(colorMode.toString())),
+                            text = AppCompatDelegate.getApplicationLocales()[0]?.displayLanguage?.replaceFirstChar {
+                                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                            } ?: stringResource(id = R.string.system_default),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
-
-                }
-            } else {
-                ListItem(headlineContent = {
-                    Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                }, modifier = Modifier.clickable {
-                    showThemeChooseDialog.value = true
-                }, supportingContent = {
-                    val colorMode = prefs.getString("custom_color", "blue")
-                    Text(
-                        text = stringResource(colorNameToString(colorMode.toString())),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
+                    },
+                    leadingContent = { Icon(Icons.Filled.Translate, null) }
+                )
             }
 
-            // AMOLED mode
-            var amoledMode by rememberSaveable {
-                mutableStateOf(prefs.getBoolean("amoled_mode", false))
-            }
-            SwitchItem(
-                icon = Icons.Filled.InvertColors,
-                title = stringResource(id = R.string.settings_amoled_mode),
-                summary = stringResource(id = R.string.settings_amoled_mode_summary),
-                checked = amoledMode
+            ExpandableSettingsSection(
+                title = stringResource(id = R.string.send_log),
+                icon = Icons.Filled.BugReport,
+                expanded = logsExpanded,
+                onExpandedChange = { logsExpanded = it }
             ) {
-                prefs.edit { putBoolean("amoled_mode", it) }
-                amoledMode = it
-                refreshTheme.value = true
-            }
-
-            // Custom Umount
-            ListItem(
-                leadingContent = { Icon(Icons.Filled.RemoveFromQueue, null) },
-                headlineContent = { Text(stringResource(R.string.umount_title)) },
-                supportingContent = { Text(stringResource(R.string.umount_summary)) },
-                modifier = androidx.compose.ui.Modifier.clickable {
-                    navigator.navigate(CustomUmountScreenDestination)
-                }
-            )
-
-            // su path
-            if (kPatchReady) {
                 ListItem(
                     leadingContent = {
-                        Icon(
-                            Icons.Filled.Commit, stringResource(id = R.string.setting_reset_su_path)
-                        )
+                        Icon(Icons.Filled.BugReport, stringResource(id = R.string.send_log))
                     },
-                    supportingContent = {},
-                    headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
+                    headlineContent = { Text(stringResource(id = R.string.send_log)) },
                     modifier = Modifier.clickable {
-                        showResetSuPathDialog.value = true
-                    })
+                        showLogBottomSheet = true
+                    }
+                )
             }
 
-            // language
-            ListItem(headlineContent = {
-                Text(text = stringResource(id = R.string.settings_app_language))
-            }, modifier = Modifier.clickable {
-                showLanguageDialog.value = true
-            }, supportingContent = {
-                Text(text = AppCompatDelegate.getApplicationLocales()[0]?.displayLanguage?.replaceFirstChar {
-                    if (it.isLowerCase()) it.titlecase(
-                        Locale.getDefault()
-                    ) else it.toString()
-                } ?: stringResource(id = R.string.system_default),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }, leadingContent = { Icon(Icons.Filled.Translate, null) })
-
-            // log
-            ListItem(
-                leadingContent = {
-                    Icon(
-                        Icons.Filled.BugReport, stringResource(id = R.string.send_log)
-                    )
-                },
-                headlineContent = { Text(stringResource(id = R.string.send_log)) },
-                modifier = Modifier.clickable {
-                    showLogBottomSheet = true
-                })
-            if (showLogBottomSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { showLogBottomSheet = false },
-                    contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-                    content = {
-                        Row(
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .align(Alignment.CenterHorizontally)
-
-                        ) {
-                            Box {
-                                Column(
-                                    modifier = Modifier
-                                        .padding(16.dp)
-                                        .clickable {
-                                            scope.launch {
-                                                val formatter =
-                                                    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
-                                                val current = LocalDateTime.now().format(formatter)
-                                                exportBugreportLauncher.launch("APatch_bugreport_${current}.tar.gz")
-                                                showLogBottomSheet = false
-                                            }
-                                        }
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Save,
-                                        contentDescription = null,
-                                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    )
-                                    Text(
-                                        text = stringResource(id = R.string.save_log),
-                                        modifier = Modifier.padding(top = 16.dp),
-                                        textAlign = TextAlign.Center.also {
-                                            LineHeightStyle(
-                                                alignment = LineHeightStyle.Alignment.Center,
-                                                trim = LineHeightStyle.Trim.None
-                                            )
-                                        }
-
-                                    )
-                                }
-
-                            }
-                            Box {
-                                Column(
-                                    modifier = Modifier
-                                        .padding(16.dp)
-                                        .clickable {
-                                            scope.launch {
-                                                val bugreport = loadingDialog.withLoading {
-                                                    withContext(Dispatchers.IO) {
-                                                        getBugreportFile(context)
-                                                    }
-                                                }
-
-                                                val uri: Uri = FileProvider.getUriForFile(
-                                                    context,
-                                                    "${BuildConfig.APPLICATION_ID}.fileprovider",
-                                                    bugreport
-                                                )
-
-                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                                    setDataAndType(uri, "application/gzip")
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                }
-
-                                                context.startActivity(
-                                                    Intent.createChooser(
-                                                        shareIntent,
-                                                        context.getString(R.string.send_log)
-                                                    )
-                                                )
-                                                showLogBottomSheet = false
-                                            }
-                                        }) {
-                                    Icon(
-                                        Icons.Filled.Share,
-                                        contentDescription = null,
-                                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    )
-                                    Text(
-                                        text = stringResource(id = R.string.send_log),
-                                        modifier = Modifier.padding(top = 16.dp),
-                                        textAlign = TextAlign.Center.also {
-                                            LineHeightStyle(
-                                                alignment = LineHeightStyle.Alignment.Center,
-                                                trim = LineHeightStyle.Trim.None
-                                            )
-                                        }
-
-                                    )
-                                }
-
-                            }
-                        }
-                        NavigationBarsSpacer()
-                    })
-            }
-
-
+            NavigationBarsSpacer()
         }
 
+        if (showLogBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showLogBottomSheet = false },
+                contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+                content = {
+                    Row(
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .align(Alignment.CenterHorizontally)
+
+                    ) {
+                        Box {
+                            Column(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .clickable {
+                                        scope.launch {
+                                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
+                                            val current = LocalDateTime.now().format(formatter)
+                                            exportBugreportLauncher.launch("APatch_bugreport_${current}.tar.gz")
+                                            showLogBottomSheet = false
+                                        }
+                                    }
+                            ) {
+                                Icon(
+                                    Icons.Filled.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.save_log),
+                                    modifier = Modifier.padding(top = 16.dp),
+                                    textAlign = TextAlign.Center.also {
+                                        LineHeightStyle(
+                                            alignment = LineHeightStyle.Alignment.Center,
+                                            trim = LineHeightStyle.Trim.None
+                                        )
+                                    }
+
+                                )
+                            }
+
+                        }
+                        Box {
+                            Column(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .clickable {
+                                        scope.launch {
+                                            val bugreport = loadingDialog.withLoading {
+                                                withContext(Dispatchers.IO) {
+                                                    getBugreportFile(context)
+                                                }
+                                            }
+
+                                            val uri: Uri = FileProvider.getUriForFile(
+                                                context,
+                                                "${BuildConfig.APPLICATION_ID}.fileprovider",
+                                                bugreport
+                                            )
+
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                setDataAndType(uri, "application/gzip")
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+
+                                            context.startActivity(
+                                                Intent.createChooser(
+                                                    shareIntent,
+                                                    context.getString(R.string.send_log)
+                                                )
+                                            )
+                                            showLogBottomSheet = false
+                                        }
+                                    }) {
+                                Icon(
+                                    Icons.Filled.Share,
+                                    contentDescription = null,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.send_log),
+                                    modifier = Modifier.padding(top = 16.dp),
+                                    textAlign = TextAlign.Center.also {
+                                        LineHeightStyle(
+                                            alignment = LineHeightStyle.Alignment.Center,
+                                            trim = LineHeightStyle.Trim.None
+                                        )
+                                    }
+
+                                )
+                            }
+
+                        }
+                    }
+                    NavigationBarsSpacer()
+                })
+        }
+    }
+}
+
+@Composable
+private fun ExpandableSettingsSection(
+    title: String,
+    icon: ImageVector,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Column {
+            ListItem(
+                leadingContent = { Icon(icon, null) },
+                headlineContent = { Text(title, style = MaterialTheme.typography.titleMedium) },
+                trailingContent = {
+                    Text(
+                        text = if (expanded) "-" else "+",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                modifier = Modifier.clickable { onExpandedChange(!expanded) },
+            )
+
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                    content()
+                }
+            }
+        }
     }
 }
 

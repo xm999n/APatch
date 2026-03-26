@@ -28,7 +28,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.InstallMobile
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
@@ -395,7 +400,7 @@ private fun TopBar(
     }, actions = {
         IconButton(onClick = onInstallClick) {
             Icon(
-                imageVector = Icons.Filled.InstallMobile,
+                imageVector = Icons.Filled.Archive,
                 contentDescription = stringResource(id = R.string.mode_select_page_title)
             )
         }
@@ -405,7 +410,7 @@ private fun TopBar(
                 showDropdownReboot = true
             }) {
                 Icon(
-                    imageVector = Icons.Filled.Refresh,
+                    imageVector = Icons.Filled.PowerSettingsNew,
                     contentDescription = stringResource(id = R.string.reboot)
                 )
 
@@ -519,15 +524,15 @@ private fun KStatusCard(
             ) {
                 when (kpState) {
                     APApplication.State.KERNELPATCH_INSTALLED -> {
-                        Icon(Icons.Filled.CheckCircle, stringResource(R.string.home_working))
+                        Icon(Icons.Filled.Verified, stringResource(R.string.home_working))
                     }
 
                     APApplication.State.KERNELPATCH_NEED_UPDATE, APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                        Icon(Icons.Outlined.SystemUpdate, stringResource(R.string.home_need_update))
+                        Icon(Icons.Filled.Update, stringResource(R.string.home_need_update))
                     }
 
                     else -> {
-                        Icon(Icons.AutoMirrored.Outlined.HelpOutline, "Unknown")
+                        Icon(Icons.Filled.Warning, "Unknown")
                     }
                 }
                 Column(
@@ -627,7 +632,7 @@ private fun KStatusCard(
                             }
 
                             APApplication.State.KERNELPATCH_UNINSTALLING -> {
-                                Icon(Icons.Outlined.Cached, contentDescription = "busy")
+                                Icon(Icons.Filled.AutoFixHigh, contentDescription = "busy")
                             }
 
                             else -> {
@@ -668,24 +673,24 @@ private fun AStatusCard(apState: APApplication.State) {
             ) {
                 when (apState) {
                     APApplication.State.ANDROIDPATCH_NOT_INSTALLED -> {
-                        Icon(Icons.Outlined.Block, stringResource(R.string.home_not_installed))
+                        Icon(Icons.Filled.Warning, stringResource(R.string.home_not_installed))
                     }
 
                     APApplication.State.ANDROIDPATCH_INSTALLING -> {
-                        Icon(Icons.Outlined.InstallMobile, stringResource(R.string.home_installing))
+                        Icon(Icons.Filled.AutoFixHigh, stringResource(R.string.home_installing))
                     }
 
                     APApplication.State.ANDROIDPATCH_INSTALLED -> {
-                        Icon(Icons.Outlined.CheckCircle, stringResource(R.string.home_working))
+                        Icon(Icons.Filled.Verified, stringResource(R.string.home_working))
                     }
 
                     APApplication.State.ANDROIDPATCH_NEED_UPDATE -> {
-                        Icon(Icons.Outlined.SystemUpdate, stringResource(R.string.home_need_update))
+                        Icon(Icons.Filled.Update, stringResource(R.string.home_need_update))
                     }
 
                     else -> {
                         Icon(
-                            Icons.AutoMirrored.Outlined.HelpOutline,
+                            Icons.Filled.Warning,
                             stringResource(R.string.home_install_unknown)
                         )
                     }
@@ -770,7 +775,7 @@ private fun AStatusCard(apState: APApplication.State) {
                                 }
 
                                 APApplication.State.ANDROIDPATCH_UNINSTALLING -> {
-                                    Icon(Icons.Outlined.Cached, contentDescription = "busy")
+                                    Icon(Icons.Filled.AutoFixHigh, contentDescription = "busy")
                                 }
 
                                 else -> {
