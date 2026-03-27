@@ -47,13 +47,8 @@ enum Commands {
     Resetprop(crate::resetprop::Args),
 
     /// MagiskPolicy - SELinux Policy Patch Tool
-    Policy(crate::mpolicy::Args),
+    Sepolicy(crate::sepolicy::Args),
 
-    /// SELinux policy Patch tool
-    Sepolicy {
-        #[command(subcommand)]
-        command: Sepolicy,
-    },
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -135,7 +130,7 @@ pub fn run() -> Result<()> {
     }
     if arg0.ends_with("magiskpolicy") {
         let all_args: Vec<String> = std::env::args().collect();
-        crate::mpolicy::policy_main(&all_args)
+        crate::sepolicy::policy_main(&all_args)
     }
 
     let cli = Args::parse();
@@ -171,10 +166,6 @@ pub fn run() -> Result<()> {
             }
         }
 
-        Commands::Sepolicy { command } => match command {
-            Sepolicy::Check { sepolicy } => crate::sepolicy::check_rule(&sepolicy),
-        },
-
         Commands::Services => event::on_services(cli.superkey),
 
         Commands::Resetprop(resetprop_args) => crate::resetprop::execute(&resetprop_args)
@@ -186,7 +177,8 @@ pub fn run() -> Result<()> {
                 }
         }),
 
-        Commands::Policy(policy_args) => crate::mpolicy::execute(&policy_args),
+        Commands::Sepolicy(sepolicy_args) => crate::sepolicy::execute(&sepolicy_args),
+
     };
 
     if let Err(e) = &result {

@@ -1,6 +1,6 @@
 #[cfg(unix)]
 use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
-use crate::mpolicy::{get_policy_main};
+use crate::sepolicy::{get_policy_main};
 use crate::lua;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use const_format::concatcp;
