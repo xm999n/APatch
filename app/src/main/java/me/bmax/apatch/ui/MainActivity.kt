@@ -52,8 +52,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.graphicsLayer
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -453,11 +454,8 @@ class MainActivity : AppCompatActivity() {
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
-                                        .graphicsLayer {
-                                            scaleX = bottomBarScale
-                                            scaleY = bottomBarScale
-                                            alpha = bottomBarAlpha
-                                        }
+                                        .scale(bottomBarScale)
+                                        .alpha(bottomBarAlpha)
                                 ) {
                                     BottomBar(navController, visibleDestinations)
                                 }
