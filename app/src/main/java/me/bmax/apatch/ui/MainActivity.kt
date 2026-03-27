@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -390,21 +391,6 @@ class MainActivity : AppCompatActivity() {
 
                 Scaffold(
                     modifier = Modifier.nestedScroll(bottomBarScrollConnection),
-                    bottomBar = {
-                        AnimatedVisibility(
-                            visible = showBottomBar,
-                            enter = slideInVertically(
-                                initialOffsetY = { it },
-                                animationSpec = tween(260)
-                            ) + fadeIn(animationSpec = tween(220)),
-                            exit = slideOutVertically(
-                                targetOffsetY = { it },
-                                animationSpec = tween(220)
-                            ) + fadeOut(animationSpec = tween(180))
-                        ) {
-                            BottomBar(navController, visibleDestinations)
-                        }
-                    },
                     contentWindowInsets = WindowInsets(0, 0, 0, 0)
                 ) { innerPadding ->
                     CompositionLocalProvider(
@@ -440,15 +426,42 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                         } else {
-                            DestinationsNavHost(
-                                modifier = Modifier
-                                    .padding(innerPadding)
-                                    .consumeWindowInsets(innerPadding),
-                                navGraph = NavGraphs.root,
-                                navController = navController,
-                                engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
-                                defaultTransitions = defaultTransitions
-                            )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                DestinationsNavHost(
+                                    modifier = Modifier
+                                        .padding(innerPadding)
+                                        .consumeWindowInsets(innerPadding),
+                                    navGraph = NavGraphs.root,
+                                    navController = navController,
+                                    engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
+                                    defaultTransitions = defaultTransitions
+                                )
+                                // Floating pill overlay — no background behind it
+                                val bottomBarScale by animateFloatAsState(
+                                    targetValue = if (showBottomBar) 1f else 0.85f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    label = "BottomBarScale"
+                                )
+                                val bottomBarAlpha by animateFloatAsState(
+                                    targetValue = if (showBottomBar) 1f else 0f,
+                                    animationSpec = tween(durationMillis = 250),
+                                    label = "BottomBarAlpha"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .graphicsLayer {
+                                            scaleX = bottomBarScale
+                                            scaleY = bottomBarScale
+                                            alpha = bottomBarAlpha
+                                        }
+                                ) {
+                                    BottomBar(navController, visibleDestinations)
+                                }
+                            }
                         }
                     }
                 }
