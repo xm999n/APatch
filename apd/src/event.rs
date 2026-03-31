@@ -3,7 +3,7 @@ use crate::module;
 use crate::utils::{ensure_dir_exists, ensure_file_exists, get_work_dir, switch_cgroups};
 use crate::{
     assets, defs, mount, restorecon, supercall,
-    supercall::{init_load_package_uid_config, init_load_su_path, refresh_ap_package_list},
+    supercall::{init_load_su_path, refresh_ap_package_list},
     utils::{self, ensure_clean_dir},
 };
 use crate::sepolicy::{get_policy_main};
@@ -261,7 +261,6 @@ pub fn move_file(module_update_dir: &str, module_dir: &str) -> Result<()> {
     Ok(())
 }
 
-
 pub fn report_kernel(superkey: Option<String>, event: &str, state: &str) -> Result<()> {
     let args = vec![
         superkey.unwrap_or_default(),
@@ -278,7 +277,6 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     utils::umask(0);
     report_kernel(superkey.clone(), "post-fs-data", "before")?;
     use std::process::Stdio;
-    #[cfg(unix)]
 
     init_load_su_path(&superkey);
 
