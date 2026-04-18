@@ -422,6 +422,69 @@ pub fn save_text<P: AsRef<Path>>(filename: P, content: &str) -> std::io::Result<
     Ok(())
 }
 
+pub fn _undo_uninstall_module(id: &str, update_dir: &str) -> Result<()> {
+    let dir = Path::new(update_dir);
+    ensure!(dir.exists(), "No module installed");
+
+    let mut found = false;
+    for entry in fs::read_dir(dir)?.flatten() {
+        let path = entry.path();
+        let module_prop = path.join("module.prop");
+        if !module_prop.exists() {
+            continue;
+        }
+
+        let content = fs::read(&module_prop)?;
+        let mut module_id = String::new();
+
+        PropertiesIter::new_with_encoding(Cursor::new(content), encoding_rs::UTF_8,).read_into(
+            |k, v| {
+                if k == "id" {
+                    module_id = v;
+                }
+            }
+        )?;
+        if module_id == id {
+            let remove_file = path.join(defs::REMOVE_FILE_NAME);
+            fs::remove_file(remove_file).with_context(|| "Failed to remove removefile.")?;
+            found = true;
+            break;
+        }
+    }
+
+    ensure!(found, "Module not found");
+
+    let _ = mark_module_state(id, defs::REMOVE_FILE_NAME, false);
+    Ok(())
+}
+pub fn undo_uninstall_module(id: &str) -> Result<()> {
+    _undo_uninstall_module(id, defs::MODULE_DIR)?;
+    mark_update()?;
+    Ok(())
+}
+
+/// Read module.prop from the given module path and return as a HashMap
+pub fn read_module_prop(module_path: &Path) -> Result<HashMap<String, String>> {
+    let module_prop = module_path.join("module.prop");
+    ensure!(
+        module_prop.exists(),
+        "module.prop not found in {}",
+        module_path.display()
+    );
+
+    let content = std::fs::read(&module_prop)
+        .with_context(|| format!("Failed to read module.prop: {}", module_prop.display()))?;
+
+    let mut prop_map: HashMap<String, String> = HashMap::new();
+    PropertiesIter::new_with_encoding(Cursor::new(content), encoding_rs::UTF_8)
+        .read_into(|k, v| {
+            prop_map.insert(k, v);
+        })
+        .with_context(|| format!("Failed to parse module.prop: {}", module_prop.display()))?;
+
+    Ok(prop_map)
+}
+
 pub fn load_text<P: AsRef<Path>>(filename: P) -> std::io::Result<String> {
     let _ = ensure_dir_exists("/data/adb/config");
     let path = Path::new("/data/adb/config").join(filename);

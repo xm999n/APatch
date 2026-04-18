@@ -84,6 +84,7 @@ import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.ModuleRemoveButton
 import me.bmax.apatch.ui.component.ModuleStateIndicator
+import me.bmax.apatch.ui.component.ModuleUndoRemoveButton
 import me.bmax.apatch.ui.component.ModuleUpdateButton
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
@@ -94,6 +95,7 @@ import me.bmax.apatch.util.hasMagisk
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.toggleModule
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.util.undoRemoveModule
 import me.bmax.apatch.util.uninstallModule
 
 @Destination<RootGraph>
@@ -254,7 +256,9 @@ private fun ModuleList(
     val failedEnable = stringResource(R.string.apm_failed_to_enable)
     val failedDisable = stringResource(R.string.apm_failed_to_disable)
     val failedUninstall = stringResource(R.string.apm_uninstall_failed)
+    val failedUndoUninstall = stringResource(R.string.apm_module_undo_uninstall_failed)
     val successUninstall = stringResource(R.string.apm_uninstall_success)
+    val successUndoUninstall = stringResource(R.string.apm_module_undo_uninstall_success)
     val reboot = stringResource(id = R.string.reboot)
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
     val moduleStr = stringResource(id = R.string.apm)
@@ -364,6 +368,34 @@ private fun ModuleList(
         }
     }
 
+    suspend fun onUndoModuleUninstall(module: APModuleViewModel.ModuleInfo) {
+        val success = loadingDialog.withLoading {
+            withContext(Dispatchers.IO) {
+                undoRemoveModule(module.id)
+            }
+        }
+
+        if (success) {
+            viewModel.fetchModuleList()
+        }
+        val message = if (success) {
+            successUndoUninstall.format(module.name)
+        } else {
+            failedUndoUninstall.format(module.name)
+        }
+        val actionLabel = if (success) {
+            reboot
+        } else {
+            null
+        }
+        val result = snackBarHost.showSnackbar(
+            message = message, actionLabel = actionLabel, duration = SnackbarDuration.Long
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            reboot()
+        }
+    }
+
     PullToRefreshBox(
         modifier = modifier,
         onRefresh = { viewModel.fetchModuleList() },
@@ -413,6 +445,9 @@ private fun ModuleList(
                             updatedModule.first,
                             onUninstall = {
                                 scope.launch { onModuleUninstall(module) }
+                            },
+                            onUndoUninstall = {
+                                scope.launch { onUndoModuleUninstall(module) }
                             },
                             onCheckChanged = {
                                 scope.launch {
@@ -470,6 +505,7 @@ private fun ModuleItem(
     isChecked: Boolean,
     updateUrl: String,
     onUninstall: (APModuleViewModel.ModuleInfo) -> Unit,
+    onUndoUninstall: (APModuleViewModel.ModuleInfo) -> Unit,
     onCheckChanged: (Boolean) -> Unit,
     onUpdate: (APModuleViewModel.ModuleInfo) -> Unit,
     onClick: (APModuleViewModel.ModuleInfo) -> Unit,
@@ -608,7 +644,17 @@ private fun ModuleItem(
 
                                 Spacer(modifier = Modifier.width(12.dp))
                             }
-                            ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
+                            if (!module.remove) {
+                                ModuleRemoveButton(
+                                    enabled = true,
+                                    onClick = { onUninstall(module) }
+                                )
+                            } else {
+                                ModuleUndoRemoveButton(
+                                    enabled = true,
+                                    onClick = { onUndoUninstall(module) }
+                                )
+                            }
                         }
                     }
                 }
