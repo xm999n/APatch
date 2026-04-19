@@ -10,8 +10,8 @@
     <string name="send_log">发送日志</string>
     <string name="patch_warnning">安装过程存在风险，请确保您的数据已备份。</string>
     <string name="home_patch_set_key_desc">内核补丁的唯一授权凭证</string>
-    <string name="home_install_unknown">未安装或未鉴权</string>
-    <string name="home_install_unknown_summary">点此安装</string>
+    <string name="home_install_unknown">内核补丁未安装</string>
+    <string name="home_install_unknown_summary">当前无法获取 Root，可能尚未修补或未刷入内核。</string>
     <string name="reboot_download">重启至 Download</string>
     <string name="home_click_to_learn_apatch">查看 APatch 的特性和用法</string>
     <string name="reboot_edl">重启至 EDL</string>
@@ -40,7 +40,6 @@
     <string name="home_not_installed">未安装</string>
     <string name="reboot_bootloader">重启至 Bootloader</string>
     <string name="about_source_code"><![CDATA[<p>在%1$s查看源码<p/>加入我们的%2$s频道<p/>加入我们的%3$s讨论组]]></string>
-    <string name="home_auth_key_desc">通过验证后开始使用</string>
     <string name="kpatch_version">版本：%s</string>
     <string name="home_ap_cando_uninstall">卸载</string>
     <string name="apatch_version">版本：%s</string>
@@ -102,7 +101,6 @@
     <string name="apm_new_version_available">有新版本 %s 可用，单击升级。</string>
     <string name="apm_update">更新</string>
     <string name="apm_author">作者</string>
-    <string name="clear_super_key">清除超级密钥</string>
     <string name="apm_not_installed">尚未注入系统补丁</string>
     <string name="system_default">系统默认</string>
     <string name="settings_app_language">语言</string>
@@ -138,6 +136,8 @@
     <string name="patch_item_extra_args">参数：</string>
     <string name="patch_item_extra_event">事件:</string>
     <string name="patch_item_skey">超级密钥</string>
+    <string name="patch_custom_superkey">自定义超级密钥</string>
+    <string name="patch_custom_superkey_summary">你仍可以设置超级密钥来管理 Root 以及内核，管理器已由内置签名授权</string>
     <string name="patch_item_existed_extra_kpm">已嵌入的</string>
     <string name="patch_item_set_skey_label">超级密钥长度应在 8-63 个字符，包含数字和字母，但不包含特殊字符。</string>
     <string name="patch_mode_uninstall_patch">还原初始内核镜像</string>
@@ -172,8 +172,6 @@
     <string name="home_new_apatch_found">发现新版本：%s，单击升级。</string>
     <string name="settings_check_update_summary">应用启动时自动检测更新</string>
     <string name="enable_web_debugging_summary">可用于调试 WebUI，请仅在需要时启用。</string>
-    <string name="settings_donot_store_superkey">不存储超级密钥</string>
-    <string name="settings_donot_store_superkey_summary">每次打开管理器时验证超级密钥</string>
     <string name="home_device_info">设备</string>
     <string name="home_system_version">系统版本</string>
     <string name="home_kpatch_version">KernelPatch 版本</string>

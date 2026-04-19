@@ -141,7 +141,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
     var forceUsingOverlayFS by rememberSaveable { mutableStateOf(false) }
     var bSkipStoreSuperKey by rememberSaveable { mutableStateOf(APatchKeyHelper.shouldSkipStoreSuperKey()) }
     val isOverlayFSAvailable by rememberSaveable { mutableStateOf(overlayFsAvailable()) }
-
     if (kPatchReady && aPatchReady) {
         isGlobalNamespaceEnabled = isGlobalNamespaceEnabled()
         isLiteModeEnabled = isLiteModeEnabled()
@@ -252,7 +251,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                             )
                         })
                 }
-
                 SwitchItem(
                     icon = Icons.Filled.Key,
                     title = stringResource(id = R.string.settings_donot_store_superkey),

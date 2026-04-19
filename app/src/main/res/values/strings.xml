@@ -47,14 +47,13 @@
     <string name="safe_mode">Safe mode</string>
 
     <string name="super_key">SuperKey</string>
-    <string name="clear_super_key">Clear SuperKey</string>
     <string name="patch_set_superkey">Set SuperKey</string>
     <string name="home_patch_set_key_desc">Only credential for KernelPatch</string>
     <string name="home_patch_next_step">Next step</string>
 
     <string name="home_not_installed">Not installed</string>
-    <string name="home_install_unknown">Not installed or authenticated</string>
-    <string name="home_install_unknown_summary">Click to install</string>
+    <string name="home_install_unknown">KernelPatch not installed</string>
+    <string name="home_install_unknown_summary">Root is unavailable. The kernel may not be patched or flashed yet.</string>
     <string name="home_click_to_install">Click to install</string>
     <string name="home_working">Working 😋</string>
 
@@ -65,8 +64,6 @@
     <string name="apatch_version_update" formatted="false">Version: %s -&gt; %s</string>
     <string name="kpatch_version_update" formatted="false">Version: %s -&gt; %s</string>
     <string name="kpatch_shadow_path_title">kpatch</string>
-    <string name="home_auth_key_title">Enter SuperKey</string>
-    <string name="home_auth_key_desc">Start after certification</string>
     <string name="home_kpatch_info_title">Info</string>
 
     <string name="home_ap_cando_install">Install</string>
@@ -104,6 +101,8 @@
     <string name="patch_item_extra_args">Args:</string>
     <string name="patch_item_extra_event">Event:</string>
     <string name="patch_item_skey">SuperKey</string>
+    <string name="patch_custom_superkey">Custom SuperKey</string>
+    <string name="patch_custom_superkey_summary">still can use superkey manager root, now we are verify manager signature by kernel</string>
     <string name="patch_item_set_skey_label">The SuperKey should be 8-63 characters long and include numbers and letters, but no special characters.</string>
 
     <string name="home_kernel">Kernel version</string>
@@ -187,9 +186,6 @@
     <string name="apm_action">Action</string>
     <string name="enable_web_debugging">Enable WebView debugging</string>
     <string name="enable_web_debugging_summary">Can be used to debug WebUI. Please enable only when needed.</string>
-
-    <string name="settings_donot_store_superkey">Don\'t store SuperKey in local</string>
-    <string name="settings_donot_store_superkey_summary">Authenticate the SuperKey every time the manager starts</string>
 
     <string name="home_new_apatch_found">New version %s is available, click to upgrade.</string>
 
