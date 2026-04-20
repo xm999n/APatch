@@ -270,7 +270,6 @@ pub fn privilege_apd_profile(superkey: &Option<String>) {
     }
 }
 
-
 pub fn init_load_su_path(superkey: &Option<String>) {
     let su_path_file = "/data/adb/ap/su_path";
 

@@ -42,6 +42,7 @@ getopts = "0.2"
 errno = "0.3.14"
 notify = "8.2"
 signal-hook = "0.3"
+regex-lite = "0.1.9"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 rustix = { git = "https://github.com/AndroidPatch/rustix", branch = "main", features = ["all-apis"] }

@@ -1,6 +1,6 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
-use policy::{format_statement_help, SePolicy};
+use policy::{SePolicy, format_statement_help};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -101,9 +101,7 @@ pub fn get_policy_main(args: &[String]) -> Result<SePolicy> {
     let cli = parser.arg;
 
     // Validate mutually exclusive options
-    let load_count = cli.load.iter().count()
-        + cli.compile_split as usize
-        + cli.load_split as usize;
+    let load_count = cli.load.iter().count() + cli.compile_split as usize + cli.load_split as usize;
     if load_count > 1 {
         bail!("Multiple load source supplied");
     }
@@ -117,8 +115,7 @@ pub fn get_policy_main(args: &[String]) -> Result<SePolicy> {
     } else if cli.compile_split {
         SePolicy::compile_split().context("Cannot compile split policy")?
     } else {
-        SePolicy::from_file("/sys/fs/selinux/policy")
-            .context("Cannot load live policy")?
+        SePolicy::from_file("/sys/fs/selinux/policy").context("Cannot load live policy")?
     };
     execute_next(&cli, &mut sepol)?;
     Ok(sepol)
@@ -128,9 +125,7 @@ pub fn get_policy_main(args: &[String]) -> Result<SePolicy> {
 /// Subcommand will direct call that, skip run_from_args
 pub fn execute(cli: &Args) -> Result<()> {
     // Validate mutually exclusive options
-    let load_count = cli.load.iter().count()
-        + cli.compile_split as usize
-        + cli.load_split as usize;
+    let load_count = cli.load.iter().count() + cli.compile_split as usize + cli.load_split as usize;
     if load_count > 1 {
         bail!("Multiple load source supplied");
     }
@@ -144,8 +139,7 @@ pub fn execute(cli: &Args) -> Result<()> {
     } else if cli.compile_split {
         SePolicy::compile_split().context("Cannot compile split policy")?
     } else {
-        SePolicy::from_file("/sys/fs/selinux/policy")
-            .context("Cannot load live policy")?
+        SePolicy::from_file("/sys/fs/selinux/policy").context("Cannot load live policy")?
     };
 
     execute_next(cli, &mut sepol)?;
