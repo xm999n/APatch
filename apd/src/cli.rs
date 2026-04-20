@@ -1,4 +1,4 @@
-use crate::{defs, event, lua, module, module_config, supercall, utils};
+use crate::{defs, event, module, module_config, supercall, utils};
 #[cfg(target_os = "android")]
 use android_logger::Config;
 use anyhow::{Context, Result};

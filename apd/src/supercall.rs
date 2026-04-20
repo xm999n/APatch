@@ -1,5 +1,4 @@
 use crate::package::{read_ap_package_config, synchronize_package_uid};
-use errno::errno;
 use libc::{EINVAL, c_long, c_void, syscall, uid_t};
 use log::{error, info, warn};
 use std::ffi::{CStr, CString};

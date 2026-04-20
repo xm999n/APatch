@@ -32,7 +32,10 @@
     <string name="system_default">System default</string>
     <string name="settings_global_namespace_mode">Global namespace mode</string>
     <string name="settings_global_namespace_mode_summary">All root sessions use the global mount namespace</string>
+    <string name="clear_super_key">Clear SuperKey</string>
     <string name="settings_clear_super_key_dialog">Do you really want to proceed?</string>
+    <string name="settings_donot_store_superkey">Do not store SuperKey</string>
+    <string name="settings_donot_store_superkey_summary">Do not persist the SuperKey in manager storage. You can still use a custom SuperKey when needed.</string>
 
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_check_update_summary">Automatically check for updates when opening the app</string>

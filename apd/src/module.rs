@@ -1,11 +1,11 @@
 use crate::sepolicy::{get_policy_main};
-use crate::{lua, module_config};
+use crate::module_config;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use const_format::concatcp;
 use is_executable::is_executable;
 use java_properties::PropertiesIter;
 use log::{debug, info, warn};
-use mlua::{Function, Lua, Result as LuaResult, Table, Value};
+use mlua::{Function, Lua, Result as LuaResult, Table};
 #[cfg(unix)]
 use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
 use std::{
@@ -370,8 +370,8 @@ fn _install_module(zip: &str) -> Result<()> {
         fs::set_permissions(modules_dir, permissions).expect("Failed to set permissions");
     }
 
-    let module_dir = format!("{}{}", modules_dir.display(), module_id.clone());
-    let _module_update_dir = format!("{}{}", modules_update_dir.display(), module_id.clone());
+    let module_dir = format!("{}{}", modules_dir.display(), module_id);
+    let _module_update_dir = format!("{}{}", modules_update_dir.display(), module_id);
     info!("module dir: {}", module_dir);
     if !Path::new(&module_dir.clone()).exists() {
         fs::create_dir(&module_dir.clone()).expect("Failed to create module folder");
@@ -496,6 +496,7 @@ pub fn undo_uninstall_module(id: &str) -> Result<()> {
 }
 
 /// Read module.prop from the given module path and return as a HashMap
+#[allow(dead_code)]
 pub fn read_module_prop(module_path: &Path) -> Result<HashMap<String, String>> {
     let module_prop = module_path.join("module.prop");
     ensure!(

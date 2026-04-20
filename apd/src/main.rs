@@ -4,7 +4,6 @@ mod cli;
 mod defs;
 mod event;
 mod magic_mount;
-mod lua;
 mod module;
 mod mount;
 mod module_config;

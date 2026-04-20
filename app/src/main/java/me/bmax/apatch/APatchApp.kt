@@ -294,6 +294,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         // TODO: 1. make me root by kernel
         // TODO: 2. remove all usage of superkey
         sharedPreferences = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
+        me.bmax.apatch.util.APatchKeyHelper.setSharedPreferences(sharedPreferences)
         superKey = "su"
 
         sharedPreferences.registerOnSharedPreferenceChangeListener(securityPreferenceListener)
