@@ -67,6 +67,7 @@
     <string name="apatch_version_update" formatted="false">Version: %s -&gt; %s</string>
     <string name="kpatch_version_update" formatted="false">Version: %s -&gt; %s</string>
     <string name="kpatch_shadow_path_title">kpatch</string>
+    <string name="home_auth_key_title">Enter SuperKey</string>
     <string name="home_kpatch_info_title">Info</string>
 
     <string name="home_ap_cando_install">Install</string>
